@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amine's Portfolio</title>
+    <link href='https://fonts.googleapis.com/css2?family=VT323&display=swap' rel="stylesheet">
+    <style>
+        :root {
+            --anim-duration: 0.8s;
+            --anim-ease: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        body {
+            background-color: #E6E6EE;
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .file-cabinet-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            transition: transform var(--anim-duration) var(--anim-ease);
+        }
+        
+        .cabinet-front {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 190px;
+            background: linear-gradient(to bottom, #E8E8E8, #D0D0D0);
+            border: 2px solid black;
+            border-radius: 6px;
+            box-sizing: border-box;
+            box-shadow: inset 0 4px 5px rgba(255,255,255,0.6), 
+                        inset 0 -4px 5px rgba(0,0,0,0.2),
+                        0 10px 25px rgba(0,0,0,0.2);
+            
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            
+            transform: translateY(0);
+            transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1),
+                        opacity var(--anim-duration) var(--anim-ease),
+                        filter var(--anim-duration) var(--anim-ease);
+            cursor: pointer;
+        }
+
+        .cabinet-front:hover:not(.no-hover) {
+            transform: translateY(-5px);
+        }
+
+        .file-cabinet-container.is-open .cabinet-front {
+            z-index: 4;
+        }
+
+        .door-handle-recess {
+            width: 200px;
+            height: 40px;
+            background: linear-gradient(to bottom, #B8B8B8, #D8D8D8);
+            border: 2px solid black;
+            border-radius: 4px;
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.3);
+        }
+        
+        .file-cabinet-container.is-open .cabinet-front {
+            transform: translateY(522px);
+        }
+        
+        /* MODIFIED: The door no longer flies away, just applies a focus effect */
+        .file-cabinet-container.folder-is-expanded .cabinet-front {
+            transform: translateY(522px) translateY(450px); /* Move down with the bottom folders */
+            opacity: 0.5;
+            filter: blur(2px);
+        }
+
+        .cabinet-body {
+            position: relative;
+            perspective: 1200px;
+            border: 2px solid black;
+            background-color: #E6E6E6;
+            position: relative;
+        }
+
+        .cabinet-body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: repeating-linear-gradient(to bottom, #E6E6EE, #E6E6EE 20px, black 20px, black 22px);
+            opacity: 0;
+            transition: opacity 0.3s ease, filter var(--anim-duration) var(--anim-ease);
+            z-index: 0;
+        }
+
+        .file-cabinet-container.folder-is-expanded .cabinet-body::before {
+            opacity: 1;
+            filter: blur(2px);
+        }
+        
+        .file-stack {
+            position: relative;
+            padding-top: 2px;
+            height: 0;
+            transition: height 0.8s ease-in-out;
+        }
+        
+        .file-cabinet-container.is-open .file-stack {
+            height: 500px;
+        }
+
+        .file-cabinet-container.folder-is-expanded .file-stack { height: 800px; }
+        
+        .file-folder {
+            height: 20px;
+            position: relative;
+            background-color: #F8F8F8;
+            box-sizing: content-box;
+            
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.5s ease, 
+                        transform var(--anim-duration) var(--anim-ease),
+                        height var(--anim-duration) var(--anim-ease),
+                        filter var(--anim-duration) var(--anim-ease);
+        }
+
+        .file-cabinet-container:not(.is-open) .file-folder {
+            pointer-events: none;
+        }
+        
+        .file-folder.is-expanded {
+            height: 400px;
+            z-index: 10;
+            background-color: transparent;
+            width: calc(100% + 4px);
+            left: -2px;
+        }
+
+        /* Animations for making space */
+        .file-folder.move-up {
+            transform: translateY(-100vh);
+            opacity: 0;
+            filter: blur(4px);
+        }
+        .file-folder.move-down {
+            transform: translateY(100vh);
+            opacity: 0;
+            filter: blur(4px);
+        }
+
+        .file-cabinet-container.folder-is-expanded .file-folder:not(.is-expanded) {
+            pointer-events: none;
+        }
+
+
+        .file-cabinet-container.is-open .file-folder {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .folder-visuals {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            transition: transform 0.2s var(--anim-ease);
+            will-change: transform;
+        }
+
+        .folder-visuals::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: black;
+        }
+
+        .file-folder:hover .folder-visuals {
+            transform: translateY(-4px);
+        }
+
+        .folder-content-area {
+            padding: 30px 20px 20px 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out 0.2s, visibility 0s 0.6s;
+            height: calc(100% - 30px);
+            box-sizing: border-box;
+            background-color: #F8F8F8;
+            box-shadow: -2px 0 0 black, 2px 0 0 black, 0 2px 0 black, 0 -2px 0 black;
+        }
+
+                .folder-content-area::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 22px;
+            left: 0;
+            top: 0;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+            box-sizing: border-box;
+        }
+
+        .file-folder.is-expanded .folder-content-area {
+            opacity: 1;
+            visibility: visible;
+            transition-delay: 0.2s, 0s;
+        }
+
+        .pulled-folder-title { margin: 0; font-size: 18px; margin-bottom: 15px; }
+        .pulled-folder-text { 
+            font-size: 14px; 
+            line-height: 1.6;
+            height: calc(100% - 40px);
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .close-folder-button { font-family: sans-serif; font-size: 24px; font-weight: bold; cursor: pointer; position: absolute; top: 20px; right: 20px; }
+
+        .tab { position: absolute; top: -18px; height: 100%; border: 2px solid black; border-bottom: none; border-radius: 6px 6px 0 0; display: flex; align-items: center; justify-content: center; padding: 0 10px; white-space: nowrap; background-color: black; color: white; box-sizing: border-box; cursor: pointer; width: 120px; font-size: 16px; box-shadow: -1px 0 0 white, 1px 0 0 white, 0 -1px 0 white; left: calc(var(--random-factor) * (100% - 120px)); }
+        
+        
+        
+        .cabinet-base { border-top: 2px solid black; height: 20px; background: linear-gradient(to bottom, #E6E6E6, #D1D1D1); position: absolute; width: 100%; top: 500px; left: 0; box-sizing: border-box; z-index: 5; transition: transform var(--anim-duration) var(--anim-ease), opacity 0.5s ease, filter var(--anim-duration) var(--anim-ease); }
+                .file-cabinet-container.folder-is-expanded .cabinet-base { transform: translateY(450px); opacity: 0; filter: blur(4px); }
+        
+        .secret-files-label { background-color: #FFF9A5; border: 2px solid black; padding: 8px 16px; font-size: 22px; cursor: pointer; transition: transform 0.2s ease; }
+        .secret-files-label:hover { transform: scale(1.05); }
+
+    #intro-text {
+        position: absolute;
+        top: 5vh;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 800px;
+        text-align: left;
+        font-size: 11px;
+        line-height: 0.9;
+        color: #333;
+        height: 40vh; /* Allocate space to prevent content jump */
+        transition: filter 0.5s ease, opacity 0.5s ease;
+    }
+
+    .cabinet-is-open #intro-text { filter: blur(4px); opacity: 0.5; pointer-events: none; }
+
+        .typing-highlight {
+        background-color: #333;
+        color: white;
+    }
+
+    </style>
+</head>
+<body>
+    <div id="intro-text"></div>
+    <div id="cabinet" class="file-cabinet-container">
+        <div class="cabinet-front">
+            <div class="door-handle-recess"></div>
+             <div id="cabinet-toggle-button" class="secret-files-label">Amine's Portfolio</div>
+        </div>
+
+        <div class="cabinet-body">
+            <div id="file-stack" class="file-stack">
+                <!-- Folders generated by JavaScript -->
+            </div>
+        </div>
+        <div class="cabinet-base"></div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const introLines = [
+                "I’m Amine Elmoufid, 23 years old.",
+                "On paper, my background is in finance. I am a master’s student in Financial Engineering from Meknès, Morocco.",
+                "I worked with the five-star Mövenpick Marrakech as a Community Manager.",
+                "I discovered the world of marketing without certificates or credentials, only with curiosity and determination.",
+                "I see myself as half-engineer, half-artist.",
+                "I design campaigns from concept to execution.",
+                "I create identities that feel cinematic and precise.",
+                "I value originality more than repetition.",
+                "I see marketing as an architecture, each decision shaped by message, originality, and cultural depth.",
+                "I believe a brand is not decoration, but a message translated into story.",
+                "I build slowly, but deliberately.",
+                "I seek collaboration where depth and creativity matter.",
+                "What defines me is the fusion of both worlds, the discipline of finance meeting the imagination of branding, a combination I carry into everything I create."
+            ];
+            const introElement = document.getElementById('intro-text');
+            let lineIndex = 0;
+            let wordIndex = 0;
+
+            function typeWriter() {
+                if (lineIndex < introLines.length) {
+                    // Find the previous highlight and convert it to plain text
+                    const lastHighlight = introElement.querySelector('.typing-highlight');
+                    if (lastHighlight) {
+                        lastHighlight.outerHTML = lastHighlight.textContent + ' ';
+                    }
+
+                    const words = introLines[lineIndex].split(' ');
+                    if (wordIndex < words.length) {
+                        // Add the new word with the highlight
+                        introElement.innerHTML += `<span class="typing-highlight">${words[wordIndex]}</span>`;
+                        wordIndex++;
+                        setTimeout(typeWriter, 150); // Speed between words
+                    } else {
+                        // Go to the next line
+                        introElement.innerHTML += '<br>';
+                        lineIndex++;
+                        wordIndex = 0;
+                        setTimeout(typeWriter, 500); // Pause between lines
+                    }
+                } else {
+                     // Final cleanup: remove the last highlight when done
+                    const lastHighlight = introElement.querySelector('.typing-highlight');
+                    if (lastHighlight) {
+                        lastHighlight.outerHTML = lastHighlight.textContent;
+                    }
+                }
+            }
+            typeWriter(); // Start the animation
+
+            const cabinet = document.getElementById('cabinet');
+            const cabinetFront = document.querySelector('.cabinet-front');
+            const fileStack = document.getElementById('file-stack');
+            const allFolders = [];
+            const localFileContent = {
+                "1": { title: 'File #001', content: 'This is the placeholder content for file 001.' },
+                "2": { title: 'File #002', content: 'This is the placeholder content for file 002.' },
+                "3": { title: 'File #003', content: 'This is the placeholder content for file 003.' },
+                "4": { title: 'File #004', content: 'This is the placeholder content for file 004.' },
+                "5": { title: 'File #005', content: 'This is the placeholder content for file 005.' },
+                "6": { title: 'File #006', content: 'This is the placeholder content for file 006.' },
+                "7": { title: 'File #007', content: 'This is the placeholder content for file 007.' },
+                "8": { title: 'File #008', content: 'This is the placeholder content for file 008.' },
+                "9": { title: 'File #009', content: 'This is the placeholder content for file 009.' },
+                "10": { title: 'File #010', content: 'This is the placeholder content for file 010.' },
+                "11": { title: 'File #011', content: 'This is the placeholder content for file 011.' },
+                "12": { title: 'File #012', content: 'This is the placeholder content for file 012.' },
+                "13": { title: 'File #013', content: 'This is the placeholder content for file 013.' },
+                "14": { title: 'File #014', content: 'This is the placeholder content for file 014.' },
+                "15": { title: 'File #015', content: 'This is the placeholder content for file 015.' },
+                "16": { title: 'File #016', content: 'This is the placeholder content for file 016.' },
+                "17": { title: 'File #017', content: 'This is the placeholder content for file 017.' },
+                "18": { title: 'File #018', content: 'This is the placeholder content for file 018.' },
+                "19": { title: 'File #019', content: 'This is the placeholder content for file 019.' },
+                "20": { title: 'File #020', content: 'This is the placeholder content for file 020.' },
+                "21": { title: 'File #021', content: 'This is the placeholder content for file 021.' },
+                "22": { title: 'File #022', content: 'This is the placeholder content for file 022.' }
+            };
+
+            let currentlyOpenFolder = null;
+
+            for (let i = 0; i < 22; i++) {
+                const folder = document.createElement('div');
+                folder.className = 'file-folder';
+                folder.dataset.id = i + 1;
+                folder.style.transitionDelay = `${0.02 * i}s`;
+                
+                const visualPart = document.createElement('div');
+                visualPart.className = 'folder-visuals';
+                
+                const tab = document.createElement('div');
+                tab.className = 'tab';
+                const randomFactor = Math.random();
+                tab.style.setProperty('--random-factor', randomFactor);
+                tab.textContent = String(i + 1).padStart(3, '0');
+                
+                const contentArea = document.createElement('div');
+                contentArea.className = 'folder-content-area';
+
+                visualPart.appendChild(tab);
+                folder.appendChild(visualPart);
+                folder.appendChild(contentArea);
+                fileStack.appendChild(folder);
+                allFolders.push(folder);
+            }
+
+            function toggleCabinet() {
+                if (currentlyOpenFolder) {
+                    closeFolder(currentlyOpenFolder);
+                }
+                cabinet.classList.toggle('is-open');
+                cabinetFront.classList.toggle('no-hover');
+                document.body.classList.toggle('cabinet-is-open');
+            }
+
+            cabinetFront.addEventListener('click', toggleCabinet);
+
+            window.addEventListener('wheel', (event) => {
+                if (!cabinet.classList.contains('is-open') && event.deltaY > 0) {
+                    toggleCabinet();
+                    event.preventDefault();
+                }
+            });
+            
+            function openFolder(folder) {
+                
+                const folderId = folder.dataset.id;
+                const folderIndex = allFolders.indexOf(folder);
+                const contentArea = folder.querySelector('.folder-content-area');
+                
+                const folderTop = folder.getBoundingClientRect().top;
+                const desiredTop = window.innerHeight / 2 - 200; 
+                const cabinetMoveDistance = desiredTop - folderTop;
+                cabinet.style.transform = `translateY(${cabinetMoveDistance}px)`;
+
+                const fileData = localFileContent[folderId];
+                if (fileData) {
+                    contentArea.innerHTML = `
+                        <span class="close-folder-button">&times;</span>
+                        <h2 class="pulled-folder-title">${fileData.title}</h2>
+                        <div class="pulled-folder-text">${fileData.content}</div>
+                    `;
+                } else {
+                    contentArea.innerHTML = `
+                        <span class="close-folder-button">&times;</span>
+                        <h2 class="pulled-folder-title">File #${String(folderId).padStart(3, '0')}</h2>
+                        <div class="pulled-folder-text">File not found.</div>
+                    `;
+                }
+                contentArea.querySelector('.close-folder-button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeFolder(folder);
+                });
+                
+                cabinet.classList.add('folder-is-expanded');
+                folder.classList.add('is-expanded');
+                currentlyOpenFolder = folder;
+
+                allFolders.forEach((f, index) => {
+                    if (index < folderIndex) {
+                        f.classList.add('move-up');
+                    } else if (index > folderIndex) {
+                        f.classList.add('move-down');
+                    }
+                });
+            }
+
+            function closeFolder(folder) {
+                
+                if (!folder) return;
+
+                cabinet.style.transform = `translateY(0px)`;
+                
+                cabinet.classList.remove('folder-is-expanded');
+                folder.classList.remove('is-expanded');
+                currentlyOpenFolder = null;
+
+                allFolders.forEach(f => {
+                    f.classList.remove('move-up', 'move-down');
+                });
+            }
+
+            fileStack.addEventListener('click', (event) => {
+                const tab = event.target.closest('.tab');
+                if (!tab) return;
+                const folder = tab.closest('.file-folder');
+
+                if (currentlyOpenFolder && currentlyOpenFolder !== folder) {
+                    closeFolder(currentlyOpenFolder);
+                    setTimeout(() => {
+                        openFolder(folder);
+                    }, 100);
+                } else if (folder.classList.contains('is-expanded') && !event.target.closest('.folder-content-area')) {
+                    closeFolder(folder);
+                } else if (!folder.classList.contains('is-expanded')) {
+                    openFolder(folder);
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                if (currentlyOpenFolder && !currentlyOpenFolder.contains(event.target)) {
+                    closeFolder(currentlyOpenFolder);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
