@@ -5,7 +5,6 @@
 
         body {
             background-color: #E6E6EE;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
             font-family: 'VT323', monospace;
             font-size: 14px;
             display: flex;
@@ -16,6 +15,7 @@
             padding: 20px;
             box-sizing: border-box;
             overflow: hidden;
+            text-shadow: 0 0 3px black;
         }
 
         .file-cabinet-container {
@@ -210,7 +210,7 @@
             transition: opacity 0.3s ease-in-out 0.2s, visibility 0s 0.6s;
             height: calc(100% - 30px);
             box-sizing: border-box;
-            background-color: #F8F8F8;
+            background-color: rgba(248, 248, 248, 0.95);
             box-shadow: -2px 0 0 black, 2px 0 0 black, 0 2px 0 black, 0 -2px 0 black;
         }
 
@@ -265,6 +265,7 @@
         color: #333;
         height: 40vh; /* Allocate space to prevent content jump */
         transition: filter 0.5s ease, opacity 0.5s ease;
+        text-shadow: 0 0 3px black;
     }
 
     .cabinet-is-open #intro-text { filter: blur(4px); opacity: 0.5; pointer-events: none; }
@@ -272,4 +273,14 @@
         .typing-highlight {
         background-color: #333;
         color: white;
-    }
+    }body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.2'/%3E%3C/svg%3E");
+}
