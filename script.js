@@ -1,5 +1,4 @@
-
-        document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
             const introElement = document.getElementById('intro-text');
             let lineIndex = 0;
             let wordIndex = 0;
@@ -38,6 +37,7 @@
             const cabinet = document.getElementById('cabinet');
             const cabinetFront = document.querySelector('.cabinet-front');
             const fileStack = document.getElementById('file-stack');
+            const cabinetBody = document.querySelector('.cabinet-body');
             const allFolders = [];
             
             let currentlyOpenFolder = null;
@@ -58,7 +58,7 @@
                     tab.className = 'tab';
                     const randomFactor = Math.random();
                     tab.style.setProperty('--random-factor', randomFactor);
-                    tab.textContent = String(file.id).padStart(3, '0');
+                    tab.textContent = file.tabLabel;
                     visualPart.appendChild(tab);
                 }
                 
@@ -167,6 +167,53 @@
             document.addEventListener('click', (event) => {
                 if (currentlyOpenFolder && !currentlyOpenFolder.contains(event.target)) {
                     closeFolder(currentlyOpenFolder);
+                } else if (!cabinet.contains(event.target) && cabinet.classList.contains('is-open') && !currentlyOpenFolder) {
+                    toggleCabinet();
                 }
             });
+
+            
+
+            cabinetBody.addEventListener('click', (event) => {
+                if (event.target === cabinetBody && !currentlyOpenFolder) {
+                    toggleCabinet();
+                }
+            });
+
+            // --- Start of new pop-up code to be added ---
+
+            // Create and append the skill pop-up element once
+            const skillPopup = document.createElement('div');
+            skillPopup.id = 'skill-popup';
+            document.body.appendChild(skillPopup);
+
+            // Replace the old 'mouseover' listener with this one:
+fileStack.addEventListener('mouseover', (event) => {
+    const targetBox = event.target.closest('.skill-box');
+    if (targetBox) {
+        const fullContent = targetBox.dataset.fullContent;
+        if (fullContent) {
+            skillPopup.innerHTML = fullContent;
+            skillPopup.style.display = 'block';
+        }
+    }
+});
+
+// Replace the old 'mouseout' listener with this one:
+fileStack.addEventListener('mouseout', (event) => {
+    const targetBox = event.target.closest('.skill-box');
+    if (targetBox) {
+        skillPopup.style.display = 'none';
+    }
+});
+
+            fileStack.addEventListener('mousemove', (event) => {
+                // Position the pop-up near the cursor, with an offset to avoid flickering
+                const offsetX = 15;
+                const offsetY = 15;
+                skillPopup.style.left = `${event.pageX + offsetX}px`;
+                skillPopup.style.top = `${event.pageY + offsetY}px`;
+            });
+
+            // --- End of new pop-up code ---
         });
