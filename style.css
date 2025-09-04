@@ -205,6 +205,7 @@
         
 
         .folder-content-area {
+            position: relative; /* Added */
             padding: 30px 20px 20px 20px;
             opacity: 0;
             visibility: hidden;
@@ -280,7 +281,7 @@
         width: 90%;
         max-width: 800px;
         text-align: left;
-        font-size: 11px;
+        font-size: 14px;
         line-height: 0.9;
         color: #333;
         height: 40vh; /* Allocate space to prevent content jump */
@@ -335,7 +336,7 @@
 
 
 
-#skill-popup {
+#skill-tooltip {
     display: none;
     position: absolute;
     border: 1px solid black;
@@ -345,4 +346,168 @@
     max-width: 250px;
     font-size: 13px;
     line-height: 1.4;
+}
+
+/* Styles for the new Static Modal */
+#skill-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 10002; /* Higher than the tooltip */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    justify-content: center;
+    align-items: center;
+}
+
+.skill-modal-content {
+    position: relative;
+    background-color: #fefefe;
+    padding: 20px;
+    border: 1px solid black;
+    width: 90%;
+    max-width: 500px;
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+#skill-modal.is-visible .skill-modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.skill-modal-close {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.skill-modal-close:hover,
+.skill-modal-close:focus {
+    color: black;
+    text-decoration: none;
+}
+body.folder-is-expanded-globally {
+    background-color: #A9A9A9; /* A darker grey */
+    transition: background-color 0.3s ease;
+}
+body.folder-is-expanded-globally #intro-text {
+    opacity: 0.3;
+}
+.info-box {
+    border: 1px solid black;
+    background-color: #fff;
+}
+.info-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    font-weight: bold;
+    border-bottom: 1px solid black;
+    cursor: pointer;
+}
+.info-box .info-header { /* Header for a box with no visible content */
+    border-bottom: none;
+}
+.plus-icon {
+    font-size: 16px;
+    margin-right: 8px;
+    font-weight: normal;
+}
+.concept-list {
+    padding: 10px;
+}
+.concept-item {
+    padding: 5px 0;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+.concept-item:last-child {
+    border-bottom: none;
+}
+.concept-item:hover {
+    background-color: #f0f0f0;
+}
+.accordion {
+    width: 100%;
+}
+.accordion-trigger {
+    background-color: #f4f4f4;
+    color: #444;
+    cursor: pointer;
+    padding: 12px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+    transition: background-color 0.2s ease;
+    border-top: 1px solid #ddd;
+    font-family: 'VT323', monospace;
+}
+.accordion-trigger:hover, .accordion-trigger.is-active {
+    background-color: #ddd;
+}
+.accordion-panel {
+    padding: 0 18px;
+    background-color: white;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+.accordion-panel p {
+    margin-top: 15px;
+}
+.project-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+.layout-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#audio-control-button {
+    position: absolute; /* Changed from fixed */
+    top: 30px; /* Changed from 20px */
+    right: 30px; /* Changed from 20px */
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #333;
+    color: white;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    z-index: 10; /* Changed from 10000 */
+}
+
+#audio-control-button.play::before {
+    content: '▶'; /* Play icon */
+}
+
+#audio-control-button.pause::before {
+    content: '⏸'; /* Pause icon */
+}
+
+.current-word-highlight {
+    background-color: #FFF9A5;
+    color: black;
 }
