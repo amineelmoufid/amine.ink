@@ -34,6 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             typeWriter(); // Start the animation
 
+            const aboutMeAudio = document.getElementById('about-me-audio');
+            const experiencesAudio = document.getElementById('experiences-audio');
+            const personalityAudio = document.getElementById('personality-audio');
+            const skillsAudio = document.getElementById('skills-audio');
+
             const cabinet = document.getElementById('cabinet');
             const cabinetFront = document.querySelector('.cabinet-front');
             const fileStack = document.getElementById('file-stack');
@@ -41,7 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const allFolders = [];
             
             let currentlyOpenFolder = null;
-            const allowedTabIds = [1, 6, 10, 15, 19];
+            let currentlyDisplayedModalTarget = null; // New: Track which modal is open
+            let currentActiveAudio = null; // Track which audio is currently associated with a transcript
+            const allowedTabIds = [1, 6, 10, 15, 19, 23];
 
             portfolioData.forEach((file, i) => {
                 const folder = document.createElement('div');
@@ -106,22 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     contentArea.innerHTML = `
                         <span class="close-folder-button">&times;</span>
                         <h2 class="pulled-folder-title">${fileData.title}</h2>
-                        <div class="pulled-folder-text" id="about-me-text-content">${fileData.content}</div>
+                        <div class="pulled-folder-text">${fileData.content}</div>
                     `;
-
-                    // Text preparation for "About Me" folder (ID 19)
-                    if (folderId == 19) {
-                        const textContentDiv = contentArea.querySelector('#about-me-text-content');
-                        const originalText = textContentDiv.textContent; // Use textContent to avoid HTML issues
-                        const words = originalText.split(/\s+/); // Split by one or more spaces
-
-                        let wordSpans = '';
-                        words.forEach((word, index) => {
-                            wordSpans += `<span class="word" data-word-index="${index}">${word}</span> `;
-                        });
-                        textContentDiv.innerHTML = wordSpans.trim(); // Trim trailing space
-                    }
-
 // Add this block to auto-open the modal for the skills folder
 // New logic to auto-open only the FIRST skill box content in the modal
 const firstSkillBox = contentArea.querySelector('.skill-box');
@@ -141,85 +134,6 @@ if (firstSkillBox) {
                         <div class="pulled-folder-text">File not found.</div>
                     `;
                 }
-
-                // Audio player for "About Me" folder (ID 19)
-                if (folderId == 19) {
-                    const audioPlayer = document.createElement('audio');
-                    audioPlayer.id = 'about-me-audio';
-                    audioPlayer.src = 'assets/audio/about_me.mp3';
-                    audioPlayer.preload = 'auto';
-                    document.body.appendChild(audioPlayer); // Audio player still needs to be in body for global control
-
-                    const audioButton = document.createElement('button');
-                    audioButton.id = 'audio-control-button';
-                    audioButton.classList.add('play'); // Initial state
-                    contentArea.appendChild(audioButton); // Append to contentArea
-
-                    let currentHighlightedWordIndex = -1; // Keep track of the highlighted word
-
-                    function handleTimeUpdate() {
-                        const currentTime = audioPlayer.currentTime;
-                        let newHighlightedWordIndex = -1;
-
-                        for (let i = 0; i < aboutMeTimestamps.length; i++) {
-                            const timestamp = aboutMeTimestamps[i];
-                            if (currentTime >= timestamp.start && currentTime <= timestamp.end) {
-                                newHighlightedWordIndex = i;
-                                break;
-                            }
-                        }
-
-                        if (newHighlightedWordIndex !== currentHighlightedWordIndex) {
-                            // Remove highlight from previous word
-                            if (currentHighlightedWordIndex !== -1) {
-                                const prevWordSpan = contentArea.querySelector(`.word[data-word-index="${currentHighlightedWordIndex}"]`);
-                                if (prevWordSpan) {
-                                    prevWordSpan.classList.remove('current-word-highlight');
-                                }
-                            }
-
-                            // Add highlight to new word
-                            if (newHighlightedWordIndex !== -1) {
-                                const newWordSpan = contentArea.querySelector(`.word[data-word-index="${newHighlightedWordIndex}"]`);
-                                if (newWordSpan) {
-                                    newWordSpan.classList.add('current-word-highlight');
-                                }
-                            }
-                            currentHighlightedWordIndex = newHighlightedWordIndex;
-                        }
-                    }
-
-                    audioButton.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (audioPlayer.paused) {
-                            audioPlayer.play();
-                            audioButton.classList.remove('play');
-                            audioButton.classList.add('pause');
-                            audioPlayer.addEventListener('timeupdate', handleTimeUpdate); // Attach listener on play
-                        } else {
-                            audioPlayer.pause();
-                            audioButton.classList.remove('pause');
-                            audioButton.classList.add('play');
-                            audioPlayer.removeEventListener('timeupdate', handleTimeUpdate); // Detach listener on pause
-                        }
-                    });
-
-                    // Ensure audio stops and button resets if user navigates away or closes
-                    audioPlayer.addEventListener('ended', () => {
-                        audioButton.classList.remove('pause');
-                        audioButton.classList.add('play');
-                        audioPlayer.removeEventListener('timeupdate', handleTimeUpdate); // Detach listener on end
-                        // Also remove highlight when audio ends
-                        if (currentHighlightedWordIndex !== -1) {
-                            const prevWordSpan = contentArea.querySelector(`.word[data-word-index="${currentHighlightedWordIndex}"]`);
-                            if (prevWordSpan) {
-                                prevWordSpan.classList.remove('current-word-highlight');
-                            }
-                            currentHighlightedWordIndex = -1;
-                        }
-                    });
-                }
-
                 contentArea.querySelector('.close-folder-button').addEventListener('click', (e) => {
                     e.stopPropagation();
                     closeFolder(folder);
@@ -236,31 +150,325 @@ if (firstSkillBox) {
                         f.classList.add('move-down');
                     }
                 });
+
+                const audioSections = {
+                    '1': { 
+                        type: 'structured', 
+                        audioElId: 'what-ive-done-audio', 
+                        timestamps: whatIveDoneTimestamps,
+                        targetElementsSelector: '[data-target]', // Selector for all highlightable elements
+                        highlightClass: 'highlight-sentence'  // The CSS class to apply
+                    },
+                    '6':  { 
+                        type: 'structured', 
+                        audioElId: 'skills-audio', 
+                        timestamps: skillsTimestamps,
+                        // We are keeping the sentence-by-sentence logic for this one
+                    },
+                    '10': { type: 'prose', audioElId: 'personality-audio', timestamps: personalityTimestamps },
+                    '15': { type: 'prose', audioElId: 'experiences-audio', timestamps: experiencesTimestamps },
+                    '19': { type: 'prose', audioElId: 'about-me-audio', timestamps: aboutMeTimestamps }
+                };
+
+
+                const config = audioSections[folderId];
+                if (config) {
+                    if (config.type === 'prose') {
+                        currentActiveAudio = config.audioEl;
+                        const textContainer = contentArea.querySelector('.pulled-folder-text');
+                        textContainer.innerHTML = ''; // Clear it first
+                        initializeProseTranscript(contentArea, textContainer, config);
+                    } else if (config.type === 'structured') {
+                        initializeStructuredTranscript(contentArea, config);
+                    }
+                }
+            }
+
+            function initializeProseTranscript(contentArea, textContainer, config) {
+                const audio = document.getElementById(config.audioElId);
+                if (!audio) return;
+
+                const audioControlBtn = document.createElement('button');
+                audioControlBtn.id = 'audio-control-button';
+                contentArea.appendChild(audioControlBtn);
+
+                config.timestamps.forEach(item => {
+                    const span = document.createElement('span');
+                    span.innerHTML = (item.html || item.text) + ' ';
+                    span.dataset.start = item.start;
+                    span.dataset.end = item.end;
+                    textContainer.appendChild(span);
+                });
+
+                const timeUpdateHandler = () => syncHighlight(audio.currentTime);
+                const endedHandler = () => {
+                    syncHighlight(-1);
+                    audioControlBtn.classList.remove('is-playing');
+                };
+
+                audio.addEventListener('timeupdate', timeUpdateHandler);
+                audio.addEventListener('ended', endedHandler);
+
+                textContainer.addEventListener('click', (event) => {
+                    if (event.target.tagName === 'SPAN' && event.target.dataset.start) {
+                        audio.currentTime = parseFloat(event.target.dataset.start);
+                        audio.play();
+                        audioControlBtn.classList.add('is-playing');
+                    }
+                });
+
+                audioControlBtn.addEventListener('click', () => {
+                    if (audio.paused) {
+                        audio.play();
+                        audioControlBtn.classList.add('is-playing');
+                    } else {
+                        audio.pause();
+                        audioControlBtn.classList.remove('is-playing');
+                    }
+                });
+            }
+
+            function openModalForContent(targetElement) {
+                if (!targetElement) return;
+                const fullContent = targetElement.dataset.fullContent;
+                if (fullContent) {
+                    skillModalContent.innerHTML = fullContent;
+                    skillModalContent.appendChild(modalCloseButton); // Re-append close button
+                    skillModal.style.display = 'flex';
+                    skillModal.classList.add('is-visible');
+                    currentlyDisplayedModalTarget = targetElement.getAttribute('data-skill') || targetElement.getAttribute('data-concept');
+                }
+            }
+
+            function syncStructuredHighlight(currentTime, contentArea, config) {
+                // Check if the timestamp data is nested for modal-based playback
+                const isNestedData = config.timestamps.length > 0 && config.timestamps[0].timings;
+
+                if (isNestedData) {
+                    let activeGroup = null;
+
+                    // Find which group of timings is currently active
+                    for (const group of config.timestamps) {
+                        const firstSentence = group.timings[0];
+                        const lastSentence = group.timings[group.timings.length - 1];
+                        if (currentTime >= firstSentence.start && currentTime <= lastSentence.end) {
+                            activeGroup = group;
+                            break;
+                        }
+                    }
+
+                    if (activeGroup) {
+                        // NEW LOGIC: Check if the active group is for the main content area
+                        if (activeGroup.isMainContent) {
+                            // Handle highlighting directly in the folder's content area
+                            let activeTargetSelector = null;
+                            activeGroup.timings.forEach(item => {
+                                if (currentTime >= item.start && currentTime < item.end) {
+                                    activeTargetSelector = item.targetSelector;
+                                }
+                            });
+                        
+                            const allTargets = contentArea.querySelectorAll('[data-target]');
+                            allTargets.forEach(target => {
+                                const shouldHighlight = activeTargetSelector && target.matches(activeTargetSelector);
+                                target.classList.toggle('highlight-sentence', shouldHighlight);
+                            });
+
+                            // Ensure modal is closed
+                            if (skillModal.style.display === 'flex') {
+                                skillModal.style.display = 'none';
+                                skillModal.classList.remove('is-visible');
+                                currentlyDisplayedModalTarget = null;
+                            }
+
+                        } else {
+                            // Handle modal sequencing and highlighting
+                            const activeTargetSelector = activeGroup.targetSelector;
+                            const activeTargetIdentifier = contentArea.querySelector(activeTargetSelector)?.getAttribute('data-concept') || contentArea.querySelector(activeTargetSelector)?.getAttribute('data-skill');
+
+                            // Open the correct modal if it's not already open
+                            if (activeTargetIdentifier && activeTargetIdentifier !== currentlyDisplayedModalTarget) {
+                                openModalForContent(contentArea.querySelector(activeTargetSelector));
+                            }
+
+                            // Highlight sentence inside the modal
+                            if (skillModal.style.display === 'flex') {
+                                const isSelectorBased = activeGroup.timings[0].sentenceSelector;
+                                if (isSelectorBased) {
+                                    let activeSentenceSelector = null;
+                                    for (const sentence of activeGroup.timings) {
+                                        if (currentTime >= sentence.start && currentTime <= sentence.end) {
+                                            activeSentenceSelector = sentence.sentenceSelector;
+                                            break;
+                                        }
+                                    }
+                                    const allSentences = skillModalContent.querySelectorAll('[data-sentence-id]');
+                                    allSentences.forEach(s => s.classList.remove('highlight-sentence'));
+                                    if (activeSentenceSelector) {
+                                        const activeEl = skillModalContent.querySelector(activeSentenceSelector);
+                                        if (activeEl) activeEl.classList.add('highlight-sentence');
+                                    }
+                                } else { // Fallback for index-based (My Skills)
+                                    let activeSentenceIndex = -1;
+                                    for (let i = 0; i < activeGroup.timings.length; i++) {
+                                        if (currentTime >= activeGroup.timings[i].start && currentTime <= activeGroup.timings[i].end) {
+                                            activeSentenceIndex = i;
+                                            break;
+                                        }
+                                    }
+                                    const listItems = skillModalContent.querySelectorAll('li');
+                                    listItems.forEach((li, index) => li.classList.toggle('highlight-sentence', index === activeSentenceIndex));
+                                }
+                            }
+                        }
+                    } else {
+                        // No active group, close modal and clear highlights
+                        if (skillModal.style.display === 'flex') {
+                            skillModal.style.display = 'none';
+                            skillModal.classList.remove('is-visible');
+                            currentlyDisplayedModalTarget = null;
+                        }
+                        const allTargets = contentArea.querySelectorAll('[data-target]');
+                        allTargets.forEach(target => target.classList.remove('highlight-sentence'));
+                    }
+                    return; // End execution for nested data
+                }
+            
+                // --- Fallback Logic for flat structured sections ---
+                let activeTargetSelector = null;
+                config.timestamps.forEach(item => {
+                    if (currentTime >= item.start && currentTime < item.end) {
+                        activeTargetSelector = item.targetSelector;
+                    }
+                });
+            
+                const allTargets = contentArea.querySelectorAll(config.targetElementsSelector);
+                allTargets.forEach(target => {
+                    const shouldHighlight = activeTargetSelector && target.matches(activeTargetSelector);
+                    target.classList.toggle(config.highlightClass, shouldHighlight);
+                });
+            }
+
+            function initializeStructuredTranscript(contentArea, config) {
+                const audio = document.getElementById(config.audioElId);
+                if (!audio) return;
+                currentActiveAudio = audio;
+            
+                const button = document.createElement('button');
+                button.id = 'audio-control-button';
+                contentArea.appendChild(button);
+                
+                button.addEventListener('click', () => {
+                    if (audio.paused) {
+                        // If starting from the beginning and it's a modal-based folder, open the first modal.
+                        if (audio.currentTime === 0 && config.timestamps[0].timings && !config.timestamps[0].isMainContent) {
+                            const firstGroup = config.timestamps[0];
+                            openModalForContent(contentArea.querySelector(firstGroup.targetSelector));
+                        }
+                        audio.play();
+                        button.classList.add('is-playing');
+                    } else {
+                        audio.pause();
+                        button.classList.remove('is-playing');
+                    }
+                });
+                
+                const onTimeUpdate = () => syncStructuredHighlight(audio.currentTime, contentArea, config);
+                audio.addEventListener('timeupdate', onTimeUpdate);
+                audio.addEventListener('ended', () => {
+                    onTimeUpdate(-1); // Remove highlights
+                    button.classList.remove('is-playing');
+                    // Close the modal at the end of playback
+                    if (skillModal.style.display === 'flex') {
+                        skillModal.style.display = 'none';
+                        skillModal.classList.remove('is-visible');
+                        currentlyDisplayedModalTarget = null;
+                    }
+                });
+            
+                // Click-to-play functionality
+                contentArea.addEventListener('click', (event) => {
+                    const clickableItem = event.target.closest('.skill-box, .concept-item');
+                    if (clickableItem) {
+                        const targetAttr = clickableItem.getAttribute('data-skill') || clickableItem.getAttribute('data-concept');
+                        const dataSelector = clickableItem.getAttribute('data-skill') ? `[data-skill='${targetAttr}']` : `[data-concept='${targetAttr}']`;
+                        const group = config.timestamps.find(t => t.targetSelector === dataSelector);
+                        
+                        if (group && group.timings.length > 0) {
+                            openModalForContent(clickableItem);
+                            audio.currentTime = group.timings[0].start;
+                            audio.play();
+                            button.classList.add('is-playing');
+                        }
+                        return;
+                    }
+            
+                    // Generic handler for main content sentences
+                    const target = event.target.closest('[data-target]');
+                    if (!target) return;
+            
+                    // Find the timestamp in the main content group
+                    const mainContentGroup = config.timestamps.find(g => g.isMainContent);
+                    if (mainContentGroup) {
+                        const timestamp = mainContentGroup.timings.find(t => target.matches(t.targetSelector));
+                        if (timestamp) {
+                            audio.currentTime = timestamp.start;
+                            audio.play();
+                            button.classList.add('is-playing');
+                        }
+                    }
+                });
+            
+                // ADD a NEW click handler for the modal content itself
+                skillModalContent.addEventListener('click', (event) => {
+                    if (currentActiveAudio !== audio) return; // Only act on the relevant audio
+
+                    const sentenceEl = event.target.closest('[data-sentence-id]');
+                    if (sentenceEl) {
+                        const sentenceId = sentenceEl.getAttribute('data-sentence-id');
+                        const currentGroup = config.timestamps.find(g => g.targetSelector.includes(currentlyDisplayedModalTarget));
+                        if (currentGroup) {
+                            const sentenceData = currentGroup.timings.find(t => t.sentenceSelector && t.sentenceSelector.includes(sentenceId));
+                            if (sentenceData) {
+                                audio.currentTime = sentenceData.start;
+                                if(audio.paused) audio.play();
+                            }
+                        }
+                        return;
+                    }
+
+                    // Fallback for index-based li (My Skills)
+                    const listItem = event.target.closest('li');
+                    if (listItem) {
+                        const allListItems = Array.from(skillModalContent.querySelectorAll('li'));
+                        const clickedIndex = allListItems.indexOf(listItem);
+                        const currentGroup = config.timestamps.find(g => g.targetSelector.includes(currentlyDisplayedModalTarget));
+
+                        if (currentGroup && currentGroup.timings[clickedIndex]) {
+                            audio.currentTime = currentGroup.timings[clickedIndex].start;
+                            if(audio.paused) audio.play();
+                        }
+                    }
+                });
+            }
+
+            function syncHighlight(currentTime) {
+                const sentences = document.querySelectorAll('.pulled-folder-text span');
+                sentences.forEach(sentence => {
+                    const start = parseFloat(sentence.dataset.start);
+                    const end = parseFloat(sentence.dataset.end);
+                    if (currentTime >= start && currentTime < end) {
+                        sentence.classList.add('highlight-sentence');
+                    } else {
+                        sentence.classList.remove('highlight-sentence');
+                    }
+                });
             }
 
             function closeFolder(folder) {
                 document.body.classList.remove('folder-is-expanded-globally');
                 
                 if (!folder) return;
-
-                // Clean up audio player and button if they exist
-                const audioPlayer = document.getElementById('about-me-audio');
-                const audioButton = document.getElementById('audio-control-button');
-
-                if (audioPlayer) {
-                    audioPlayer.pause();
-                    audioPlayer.currentTime = 0; // Reset audio to beginning
-                    audioPlayer.removeEventListener('timeupdate', handleTimeUpdate); // Detach listener
-                    audioPlayer.remove();
-                }
-                if (audioButton) {
-                    audioButton.remove();
-                }
-                // Also remove any lingering highlight when folder closes
-                const highlightedWord = document.querySelector('.current-word-highlight');
-                if (highlightedWord) {
-                    highlightedWord.classList.remove('current-word-highlight');
-                }
 
                 cabinet.style.transform = `translateY(0px)`;
                 
@@ -271,22 +479,44 @@ if (firstSkillBox) {
                 allFolders.forEach(f => {
                     f.classList.remove('move-up', 'move-down');
                 });
+
+                // Stop all audios
+                const allAudioIds = ['about-me-audio', 'experiences-audio', 'personality-audio', 'skills-audio', 'what-ive-done-audio'];
+                allAudioIds.forEach(id => {
+                    const audio = document.getElementById(id);
+                    if (audio) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                        // Remove all listeners to prevent memory leaks
+                        const newAudio = audio.cloneNode(true); // This clones the element and its attributes, but not listeners
+                        audio.parentNode.replaceChild(newAudio, audio);
+                    }
+                });
+
+                skillModal.style.display = 'none';
+                skillModal.classList.remove('is-visible');
+                currentlyDisplayedModalTarget = null;
+                currentActiveAudio = null;
             }
 
             fileStack.addEventListener('click', (event) => {
                 const folder = event.target.closest('.file-folder');
                 if (!folder) return;
-                if (folder.classList.contains('has-prominent-hover')) {
-                    if (currentlyOpenFolder && currentlyOpenFolder !== folder) {
-                        closeFolder(currentlyOpenFolder);
-                        setTimeout(() => {
-                            openFolder(folder);
-                        }, 100);
-                    } else if (folder.classList.contains('is-expanded') && !event.target.closest('.folder-content-area')) {
-                        closeFolder(folder);
-                    } else if (!folder.classList.contains('is-expanded')) {
+
+                const folderId = parseInt(folder.dataset.id);
+                if (!allowedTabIds.includes(folderId)) {
+                    return; // Ignore click if folder doesn't have a tab
+                }
+
+                if (currentlyOpenFolder && currentlyOpenFolder !== folder) {
+                    closeFolder(currentlyOpenFolder);
+                    setTimeout(() => {
                         openFolder(folder);
-                    }
+                    }, 100);
+                } else if (folder.classList.contains('is-expanded') && !event.target.closest('.folder-content-area')) {
+                    closeFolder(folder);
+                } else if (!folder.classList.contains('is-expanded')) {
+                    openFolder(folder);
                 }
             });
 
