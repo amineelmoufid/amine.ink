@@ -1,0 +1,134 @@
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+}
+
+h1 {
+    font-weight: 300;
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+p {
+    color: #a0a0a0;
+}
+
+/* --- Main Record Button --- */
+#recordToggleButton {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid #e0e0e0;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    outline: none;
+    transition: all 0.2s ease-in-out;
+    margin: 20px 0;
+}
+
+#recordToggleButton:hover:not(:disabled) {
+    border-color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#recordToggleButton:disabled {
+    cursor: not-allowed;
+    border-color: #555;
+}
+
+/* --- Button Icon (Microphone / Stop) --- */
+#recordToggleButton .icon {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Microphone Icon (default state) */
+#recordToggleButton .icon::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 40px;
+    background-color: #e0e0e0;
+    border-radius: 12px;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Stop Icon (recording state) */
+#recordToggleButton.is-recording .icon::before {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    background-color: #ff4545;
+}
+
+/* Pulsating Animation */
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 69, 69, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(255, 69, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 69, 69, 0); }
+}
+
+#recordToggleButton.is-recording {
+    border-color: #ff4545;
+    animation: pulse 2s infinite;
+}
+
+/* --- Spinner (processing state) --- */
+#recordToggleButton .spinner {
+    position: absolute;
+    top: -3px; /* align with border */
+    left: -3px; /* align with border */
+    width: 100px;
+    height: 100px;
+    border: 3px solid transparent;
+    border-top-color: #4a90e2;
+    border-radius: 50%;
+    display: none;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#recordToggleButton.is-processing .spinner { display: block; }
+#recordToggleButton.is-processing .icon { opacity: 0; }
+
+/* --- Output & Status --- */
+#output {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #333;
+    background-color: #1e1e1e;
+    white-space: pre-wrap;
+    max-width: 800px;
+    width: 100%;
+    min-height: 100px;
+    text-align: left;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#output.visible { opacity: 1; }
+
+#status { margin-top: 10px; color: #a0a0a0; min-height: 24px; }
+.error { color: #ff4545; background-color: rgba(255, 69, 69, 0.1); padding: 10px; border-radius: 5px; }
