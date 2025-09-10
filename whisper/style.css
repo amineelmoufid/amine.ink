@@ -82,16 +82,40 @@ p {
     background-color: #ff4545;
 }
 
+/* --- New ::after pseudo-element for performant pulse --- */
+#recordToggleButton::after {
+    content: '';
+    position: absolute;
+    z-index: -1; /* Place behind the button's icon */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: #ff4545;
+    opacity: 0;
+    transform: scale(1);
+}
+
 /* Pulsating Animation */
 @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(255, 69, 69, 0.7); }
-    70% { box-shadow: 0 0 0 15px rgba(255, 69, 69, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 69, 69, 0); }
+    0% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1.4);
+        opacity: 0;
+    }
 }
 
 #recordToggleButton.is-recording {
     border-color: #ff4545;
-    animation: pulse 2s infinite;
+}
+
+/* Apply the animation to the pseudo-element */
+#recordToggleButton.is-recording::after {
+    animation: pulse 1.5s infinite;
 }
 
 /* --- Spinner (processing state) --- */
@@ -134,24 +158,99 @@ p {
 .error { color: #ff4545; background-color: rgba(255, 69, 69, 0.1); padding: 10px; border-radius: 5px; }
 
 /* --- Read Aloud Button --- */
-#readAloudButton {
-    padding: 10px 20px;
+.action-buttons-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
     margin-top: 15px;
+    min-height: 44px; /* Prevents layout shift when buttons appear */
+}
+
+#ttsContainer {
+    position: relative;
+    width: 220px;
+    height: 44px;
+}
+
+#ttsActionButton {
+    width: 100%;
+    height: 100%;
+    padding: 10px 20px;
     background-color: #4a90e2;
     color: #fff;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1rem;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
 }
 
-#readAloudButton:hover:not(:disabled) {
+#ttsActionButton:hover:not(:disabled) {
     background-color: #357abd;
 }
 
-#readAloudButton:disabled {
+#ttsActionButton:disabled {
     background-color: #555;
     color: #999;
     cursor: not-allowed;
+}
+
+#authPromptUI {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #3a3a3a;
+    border: 1px solid #4a90e2;
+    border-radius: 5px;
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    color: #e0e0e0;
+}
+
+#signInButton {
+    margin-top: 4px;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+/* State change class */
+#ttsContainer.auth-needed #ttsActionButton {
+    display: none;
+}
+
+#ttsContainer.auth-needed #authPromptUI {
+    display: flex;
+}
+
+/* --- Copy Button --- */
+#copyButton {
+    display: none; /* Hidden by default, controlled by JS */
+    height: 44px;
+    padding: 10px 20px;
+    background-color: #6c757d; /* Neutral grey */
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+#copyButton:hover:not(:disabled) {
+    background-color: #5a6268;
+}
+
+#copyButton.copied {
+    background-color: #28a745; /* Success green */
+    color: #fff;
 }

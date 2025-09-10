@@ -2,7 +2,10 @@
 const recordToggleButton = document.getElementById('recordToggleButton');
 const outputDiv = document.getElementById('output');
 const statusDiv = document.getElementById('status');
-const readAloudButton = document.getElementById('readAloudButton');
+const ttsContainer = document.getElementById('ttsContainer');
+const ttsActionButton = document.getElementById('ttsActionButton');
+const signInButton = document.getElementById('signInButton');
+const copyButton = document.getElementById('copyButton');
 
 // --- Constants & Configuration ---
 // DANGER: Do NOT expose your API key in client-side code.
@@ -28,7 +31,9 @@ function setUIState(state) {
     // Reset classes on elements that change
     statusDiv.className = '';
     recordToggleButton.classList.remove('is-recording', 'is-processing');
-    readAloudButton.disabled = true; // Disable by default
+    ttsActionButton.disabled = true; // Disable by default
+    ttsContainer.classList.remove('auth-needed'); // Also reset auth UI on state changes
+    copyButton.style.display = 'none'; // Hide by default
 
     switch (state) {
         case 'idle':
@@ -56,7 +61,8 @@ function setUIState(state) {
             recordToggleButton.setAttribute('aria-label', 'Start Recording');
             statusDiv.textContent = "Done. Click to record again.";
             outputDiv.classList.add('visible');
-            readAloudButton.disabled = false; // Enable when there's text
+            ttsActionButton.disabled = false; // Enable when there's text
+            copyButton.style.display = 'block'; // Show on success
             break;
         case 'error':
             recordToggleButton.disabled = false;
@@ -77,7 +83,65 @@ recordToggleButton.addEventListener('click', () => {
     }
 });
 
-readAloudButton.addEventListener('click', async () => {
+ttsActionButton.addEventListener('click', performTTS);
+
+signInButton.addEventListener('click', async () => {
+    statusDiv.textContent = 'Please complete authentication in the popup window...';
+    statusDiv.className = '';
+
+    const width = 600;
+    const height = 700;
+    const left = (window.screen.width / 2) - (width / 2);
+    const top = (window.screen.height / 2) - (height / 2);
+
+    const authUrl = 'https://puter.com/?embedded_in_popup=true&request_auth=true';
+    const authPopup = window.open(authUrl, 'puterAuth', `width=${width},height=${height},popup=true,top=${top},left=${left}`);
+
+    await new Promise(resolve => {
+        const poller = setInterval(() => {
+            if (!authPopup || authPopup.closed) {
+                clearInterval(poller);
+                resolve();
+            }
+        }, 500);
+    });
+
+    // When popup is closed, hide the auth prompt and re-trigger the TTS action
+    ttsContainer.classList.remove('auth-needed');
+    // A small delay to allow the UI to update before starting the process again
+    setTimeout(() => {
+        performTTS();
+    }, 100);
+});
+
+copyButton.addEventListener('click', async () => {
+    const fullText = outputDiv.textContent;
+    if (!fullText.trim()) return;
+
+    const parts = fullText.split('The correct form:');
+    const textToCopy = (parts.length > 1) ? parts[1].trim() : fullText.trim();
+
+    if (!textToCopy) return;
+
+    try {
+        await navigator.clipboard.writeText(textToCopy);
+
+        const originalText = copyButton.textContent;
+        copyButton.textContent = 'Copied!';
+        copyButton.classList.add('copied');
+
+        setTimeout(() => {
+            copyButton.textContent = originalText;
+            copyButton.classList.remove('copied');
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy text: ', err);
+        statusDiv.textContent = 'Failed to copy text.';
+        statusDiv.className = 'error';
+    }
+});
+
+async function performTTS() {
     const fullText = outputDiv.textContent;
     if (!fullText.trim()) {
         return;
@@ -92,66 +156,54 @@ readAloudButton.addEventListener('click', async () => {
         return;
     }
 
-    const originalButtonText = readAloudButton.textContent;
-    readAloudButton.disabled = true;
-    readAloudButton.textContent = 'Generating audio...';
+    const originalButtonText = ttsActionButton.textContent;
+    ttsActionButton.disabled = true;
+    ttsActionButton.textContent = 'Generating audio...';
     statusDiv.textContent = ''; // Clear previous status messages
     statusDiv.className = '';
 
-    try {
-        statusDiv.textContent = 'Checking authentication status...';
-        const isSignedIn = await puter.auth.isSignedIn();
+    const maxRetries = 6;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const audio = await puter.ai.txt2speech(textToRead, { engine: 'generative' });
+            audio.play();
 
-        if (!isSignedIn) {
-            statusDiv.textContent = 'Please sign in to continue...';
-            await puter.auth.signIn(); // Triggers popup; throws on cancellation.
-        }
+            // Re-enable the button only after the audio has finished playing
+            audio.addEventListener('ended', () => {
+                ttsActionButton.disabled = false;
+                ttsActionButton.textContent = originalButtonText;
+            });
 
-        // At this point, the user is authenticated. Proceed with TTS.
-        readAloudButton.textContent = 'Generating audio...';
-        statusDiv.textContent = 'Generating audio...';
+            // Success, so we exit the function
+            return;
+        } catch (error) {
+            console.error(`Puter.ai TTS Error (Attempt ${attempt}/${maxRetries}):`, error);
 
-        const maxRetries = 6;
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                const audio = await puter.ai.txt2speech(textToRead, { engine: 'generative' });
-                audio.play();
+            // Check if the error is an authentication error
+            if (error && error.code === 'auth_required') {
+                statusDiv.textContent = 'Authentication is required to use this feature.';
+                statusDiv.className = 'error';
+                ttsContainer.classList.add('auth-needed');
+                ttsActionButton.textContent = originalButtonText; // Restore text
+                ttsActionButton.disabled = false; // Re-enable button visually, though it's hidden
+                return; // Exit function, wait for user to click "Sign In"
+            } else if (attempt < maxRetries) {
+                statusDiv.textContent = `Audio generation failed. Retrying... Attempt ${attempt + 1}/${maxRetries}`;
+                statusDiv.className = 'error';
 
-                // Re-enable the button only after the audio has finished playing
-                audio.addEventListener('ended', () => {
-                    readAloudButton.disabled = false;
-                    readAloudButton.textContent = originalButtonText;
-                    statusDiv.textContent = '';
-                });
-
-                // Success, so we exit the entire function
-                return;
-            } catch (error) {
-                console.error(`Puter.ai TTS Error (Attempt ${attempt}/${maxRetries}):`, error);
-
-                if (attempt < maxRetries) {
-                    statusDiv.textContent = `Audio generation failed. Retrying... Attempt ${attempt + 1}/${maxRetries}`;
-                    statusDiv.className = 'error';
-
-                    // Exponential backoff delay (1s, 2s, 4s, ...)
-                    const delay = 1000 * Math.pow(2, attempt - 1);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
+                // Exponential backoff delay (1s, 2s, 4s, ...)
+                const delay = 1000 * Math.pow(2, attempt - 1);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
-
-        // If the loop completes, all retries have failed.
-        throw new Error("Failed to generate audio after multiple attempts.");
-
-    } catch (error) {
-        // This single catch block handles auth cancellation or final TTS failure.
-        console.error("Operation failed:", error);
-        statusDiv.textContent = error.message.includes("cancelled") ? "Authentication cancelled." : error.message;
-        statusDiv.className = 'error';
-        readAloudButton.disabled = false;
-        readAloudButton.textContent = originalButtonText;
     }
-});
+
+    // If the loop completes, all retries have failed.
+    statusDiv.textContent = "Failed to generate audio. Please try again later.";
+    statusDiv.className = 'error';
+    ttsActionButton.disabled = false;
+    ttsActionButton.textContent = originalButtonText;
+}
 
 async function startRecording() {
     try {
