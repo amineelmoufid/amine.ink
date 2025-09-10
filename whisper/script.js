@@ -2,6 +2,7 @@
 const recordToggleButton = document.getElementById('recordToggleButton');
 const outputDiv = document.getElementById('output');
 const statusDiv = document.getElementById('status');
+const readAloudButton = document.getElementById('readAloudButton');
 
 // --- Constants & Configuration ---
 // DANGER: Do NOT expose your API key in client-side code.
@@ -27,6 +28,7 @@ function setUIState(state) {
     // Reset classes on elements that change
     statusDiv.className = '';
     recordToggleButton.classList.remove('is-recording', 'is-processing');
+    readAloudButton.disabled = true; // Disable by default
 
     switch (state) {
         case 'idle':
@@ -54,6 +56,7 @@ function setUIState(state) {
             recordToggleButton.setAttribute('aria-label', 'Start Recording');
             statusDiv.textContent = "Done. Click to record again.";
             outputDiv.classList.add('visible');
+            readAloudButton.disabled = false; // Enable when there's text
             break;
         case 'error':
             recordToggleButton.disabled = false;
@@ -72,6 +75,62 @@ recordToggleButton.addEventListener('click', () => {
     } else {
         startRecording();
     }
+});
+
+readAloudButton.addEventListener('click', async () => {
+    const fullText = outputDiv.textContent;
+    if (!fullText.trim()) {
+        return;
+    }
+
+    const parts = fullText.split('The correct form:');
+    // If the split was successful, use the corrected text. Otherwise, fall back to the full text.
+    const textToRead = (parts.length > 1) ? parts[1].trim() : fullText.trim();
+
+    // Do not proceed if the final text to read is empty
+    if (!textToRead) {
+        return;
+    }
+
+    const originalButtonText = readAloudButton.textContent;
+    readAloudButton.disabled = true;
+    readAloudButton.textContent = 'Generating audio...';
+    statusDiv.textContent = ''; // Clear previous status messages
+    statusDiv.className = '';
+
+    const maxRetries = 6;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const audio = await puter.ai.txt2speech(textToRead, { engine: 'generative' });
+            audio.play();
+
+            // Re-enable the button only after the audio has finished playing
+            audio.addEventListener('ended', () => {
+                readAloudButton.disabled = false;
+                readAloudButton.textContent = originalButtonText;
+            });
+
+            // Success, so we exit the function
+            return;
+        } catch (error) {
+            console.error(`Puter.ai TTS Error (Attempt ${attempt}/${maxRetries}):`, error);
+
+            if (attempt < maxRetries) {
+                statusDiv.textContent = `Audio generation failed. Retrying... Attempt ${attempt + 1}/${maxRetries}`;
+                statusDiv.className = 'error';
+
+                // Exponential backoff delay (1s, 2s, 4s, ...)
+                const delay = 1000 * Math.pow(2, attempt - 1);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+    // If the loop completes, all retries have failed.
+    statusDiv.textContent = "Failed to generate audio. Please try again later.";
+    statusDiv.className = 'error';
+    readAloudButton.disabled = false;
+    readAloudButton.textContent = originalButtonText;
 });
 
 async function startRecording() {
