@@ -98,39 +98,59 @@ readAloudButton.addEventListener('click', async () => {
     statusDiv.textContent = ''; // Clear previous status messages
     statusDiv.className = '';
 
-    const maxRetries = 6;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            const audio = await puter.ai.txt2speech(textToRead, { engine: 'generative' });
-            audio.play();
+    try {
+        statusDiv.textContent = 'Checking authentication status...';
+        const isSignedIn = await puter.auth.isSignedIn();
 
-            // Re-enable the button only after the audio has finished playing
-            audio.addEventListener('ended', () => {
-                readAloudButton.disabled = false;
-                readAloudButton.textContent = originalButtonText;
-            });
+        if (!isSignedIn) {
+            statusDiv.textContent = 'Please sign in to continue...';
+            await puter.auth.signIn(); // Triggers popup; throws on cancellation.
+        }
 
-            // Success, so we exit the function
-            return;
-        } catch (error) {
-            console.error(`Puter.ai TTS Error (Attempt ${attempt}/${maxRetries}):`, error);
+        // At this point, the user is authenticated. Proceed with TTS.
+        readAloudButton.textContent = 'Generating audio...';
+        statusDiv.textContent = 'Generating audio...';
 
-            if (attempt < maxRetries) {
-                statusDiv.textContent = `Audio generation failed. Retrying... Attempt ${attempt + 1}/${maxRetries}`;
-                statusDiv.className = 'error';
+        const maxRetries = 6;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const audio = await puter.ai.txt2speech(textToRead, { engine: 'generative' });
+                audio.play();
 
-                // Exponential backoff delay (1s, 2s, 4s, ...)
-                const delay = 1000 * Math.pow(2, attempt - 1);
-                await new Promise(resolve => setTimeout(resolve, delay));
+                // Re-enable the button only after the audio has finished playing
+                audio.addEventListener('ended', () => {
+                    readAloudButton.disabled = false;
+                    readAloudButton.textContent = originalButtonText;
+                    statusDiv.textContent = '';
+                });
+
+                // Success, so we exit the entire function
+                return;
+            } catch (error) {
+                console.error(`Puter.ai TTS Error (Attempt ${attempt}/${maxRetries}):`, error);
+
+                if (attempt < maxRetries) {
+                    statusDiv.textContent = `Audio generation failed. Retrying... Attempt ${attempt + 1}/${maxRetries}`;
+                    statusDiv.className = 'error';
+
+                    // Exponential backoff delay (1s, 2s, 4s, ...)
+                    const delay = 1000 * Math.pow(2, attempt - 1);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
             }
         }
-    }
 
-    // If the loop completes, all retries have failed.
-    statusDiv.textContent = "Failed to generate audio. Please try again later.";
-    statusDiv.className = 'error';
-    readAloudButton.disabled = false;
-    readAloudButton.textContent = originalButtonText;
+        // If the loop completes, all retries have failed.
+        throw new Error("Failed to generate audio after multiple attempts.");
+
+    } catch (error) {
+        // This single catch block handles auth cancellation or final TTS failure.
+        console.error("Operation failed:", error);
+        statusDiv.textContent = error.message.includes("cancelled") ? "Authentication cancelled." : error.message;
+        statusDiv.className = 'error';
+        readAloudButton.disabled = false;
+        readAloudButton.textContent = originalButtonText;
+    }
 });
 
 async function startRecording() {
