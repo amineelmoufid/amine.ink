@@ -1101,13 +1101,17 @@ document.addEventListener('mousemove', (event) => {
     const zoomOutBtn = document.getElementById('pdf-zoom-out');
     let currentPdfZoom = 1.0;
 
+    function openPdfModal() {
+        pdfModal.style.display = 'flex';
+        currentPdfZoom = 1.0; // Reset zoom every time
+        pdfIframe.style.transform = 'scale(1)';
+        pdfIframe.style.transformOrigin = 'top left';
+    }
+
     // Event listener to OPEN the modal (using delegation on the whole file stack)
     fileStack.addEventListener('click', (event) => {
         if (event.target.matches('.pdf-preview-overlay')) {
-            pdfModal.style.display = 'flex';
-            currentPdfZoom = 1.0; // Reset zoom every time
-            pdfIframe.style.transform = 'scale(1)';
-            pdfIframe.style.transformOrigin = 'top left';
+            openPdfModal();
         }
     });
 
@@ -1241,7 +1245,17 @@ document.addEventListener('mousemove', (event) => {
             toggleCabinet();
         }
     }, 30000); // 30-second inactivity timer
-        });
+
+    // Check for #resume hash on page load
+    if (window.location.hash === '#resume') {
+        // If the cabinet is closed, open it first.
+        if (!cabinet.classList.contains('is-open')) {
+            toggleCabinet();
+        }
+        // Wait for the cabinet to open before showing the modal.
+        setTimeout(openPdfModal, 800);
+    }
+});
 let i = 1;
 setInterval(() => {
   document.getElementById('slideshow').src = `assets/imgs/(${i = (i % 83) + 2}).jpg`;
