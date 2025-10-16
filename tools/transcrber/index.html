@@ -73,6 +73,33 @@
       </div>
     </section>
 
+    <section class="card" id="caption-preview-card">
+      <h2>Caption Preview</h2>
+      <p class="hint">Step through captions in a high-contrast view or play the corresponding audio snippet.</p>
+      <div class="preview-display">
+        <span id="preview-counter" class="preview-counter">-- / --</span>
+        <div class="preview-text-wrapper">
+          <p id="preview-text" class="preview-text">No captions loaded yet.</p>
+        </div>
+      </div>
+      <div class="preview-controls">
+        <button id="preview-prev-btn" type="button" disabled>Previous</button>
+        <button id="preview-play-btn" type="button" disabled>Play</button>
+        <button id="preview-next-btn" type="button" disabled>Next</button>
+      </div>
+    </section>
+
+    <section class="card" id="translator-card">
+      <h2>Translator</h2>
+      <p class="hint">Translate the current subtitles into any language while keeping timing intact.</p>
+      <div class="translator-controls">
+        <input id="translator-language" type="text" placeholder="Target language (e.g., Spanish)" />
+        <button id="translate-btn" type="button">Translate</button>
+      </div>
+      <p id="translator-status" class="hint"></p>
+      <textarea id="translation-output" rows="8" placeholder="Translated subtitles appear here..." readonly></textarea>
+    </section>
+
     <section class="card" id="visual-editor">
       <h2>Visual Editor</h2>
       <p class="hint">Play the audio, monitor captions, and nudge timing by 100ms steps.</p>

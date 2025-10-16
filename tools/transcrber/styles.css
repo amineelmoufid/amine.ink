@@ -303,25 +303,18 @@ label {
 }
 
 .highlight-item-editor {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
 }
 
-.highlight-top-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.highlight-top-controls .highlight-play-btn {
-  padding: 0.35rem 0.75rem;
-}
-
-.highlight-top-btn {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.7rem;
+.highlight-reset-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.65rem;
   border-radius: 999px;
   border: 1px solid #cbd5fe;
   background: #e0e7ff;
@@ -331,14 +324,14 @@ label {
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.highlight-top-btn:disabled {
+.highlight-reset-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-.highlight-top-btn:not(:disabled):hover {
+.highlight-reset-btn:not(:disabled):hover {
   background: #cbd5fe;
   transform: translateY(-1px);
 }
@@ -352,6 +345,140 @@ label {
 
 .highlight-static-row .highlight-text-static {
   flex: 1;
+}
+
+.preview-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1.5rem;
+  border-radius: 14px;
+  background: #0f172a;
+  margin-bottom: 1rem;
+}
+
+.preview-counter {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.preview-text-wrapper {
+  flex: 1;
+}
+
+.preview-text {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.3rem;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.preview-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.preview-controls button {
+  padding: 0.55rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  font-weight: 600;
+  background: #312e81;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.preview-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.preview-controls button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(49, 46, 129, 0.35);
+}
+
+.translator-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+#translator-language {
+  flex: 1;
+  min-width: 200px;
+  border: 1px solid #d1d9e6;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+#translator-language:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+#translate-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  background: #4f46e5;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+#translate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+#translate-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
+}
+
+#translator-status {
+  min-height: 1.2em;
+}
+
+#translator-status[data-tone="error"] {
+  color: #b3261e;
+}
+
+#translator-status[data-tone="success"] {
+  color: #216c2a;
+}
+
+#translator-status[data-tone="info"] {
+  color: #64748b;
+}
+
+#translation-output {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #d1d9e6;
+  padding: 1rem;
+  background: #f8fafc;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.95rem;
+  color: #1e293b;
+  resize: vertical;
 }
 
 .highlight-item textarea {
@@ -753,17 +880,6 @@ textarea:focus {
     text-align: center;
   }
 
-  .highlight-top-controls {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
-  .highlight-top-controls .highlight-top-btn,
-  .highlight-top-controls .highlight-play-btn {
-    width: 100%;
-  }
-
   .highlight-static-row {
     flex-direction: column;
     align-items: stretch;
@@ -771,6 +887,28 @@ textarea:focus {
   }
 
   .highlight-static-row .highlight-play-btn {
+    width: 100%;
+  }
+
+  .preview-display {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .preview-counter {
+    order: -1;
+  }
+
+  .preview-controls button {
+    width: 100%;
+  }
+
+  .translator-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #translate-btn {
     width: 100%;
   }
 

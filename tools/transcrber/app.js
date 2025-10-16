@@ -104,6 +104,15 @@ const highlightContainer = document.getElementById("highlight-container");
 const highlightListEl = document.getElementById("highlight-list");
 const markUncertainBtn = document.getElementById("mark-uncertain-btn");
 const clearPlayBtn = document.getElementById("clear-play-btn");
+const previewText = document.getElementById("preview-text");
+const previewCounter = document.getElementById("preview-counter");
+const previewPrevBtn = document.getElementById("preview-prev-btn");
+const previewPlayBtn = document.getElementById("preview-play-btn");
+const previewNextBtn = document.getElementById("preview-next-btn");
+const translatorLanguageInput = document.getElementById("translator-language");
+const translateBtn = document.getElementById("translate-btn");
+const translatorStatus = document.getElementById("translator-status");
+const translationOutput = document.getElementById("translation-output");
 
 let lastAudioBase64 = "";
 let lastAudioMimeType = "";
@@ -117,6 +126,7 @@ let highlightSelectionIndex = -1;
 let highlightedCaptions = new Set();
 let playbackClampEnd = null;
 let highlightActiveControls = null;
+let previewIndex = -1;
 
 srtOutput.addEventListener("input", () => {
   updateLanguageFixButton();
@@ -140,6 +150,45 @@ viewSrtBtn.addEventListener("click", () => switchPreviewMode("srt"));
 viewHighlightBtn.addEventListener("click", () => switchPreviewMode("highlight"));
 markUncertainBtn.addEventListener("click", () => markSelectedHighlight());
 clearPlayBtn.addEventListener("click", () => clearAndPlaySelected());
+
+if (previewPrevBtn) {
+  previewPrevBtn.addEventListener("click", event => {
+    event.stopPropagation();
+    if (!captions.length || previewIndex <= 0 || isProcessing) {
+      return;
+    }
+    updatePreviewIndex(previewIndex - 1);
+  });
+}
+
+if (previewNextBtn) {
+  previewNextBtn.addEventListener("click", event => {
+    event.stopPropagation();
+    if (!captions.length || previewIndex >= captions.length - 1 || isProcessing) {
+      return;
+    }
+    updatePreviewIndex(previewIndex + 1);
+  });
+}
+
+if (previewPlayBtn) {
+  previewPlayBtn.addEventListener("click", event => {
+    event.stopPropagation();
+    if (previewIndex < 0 || previewIndex >= captions.length) {
+      return;
+    }
+    playCaptionSegment(previewIndex);
+  });
+}
+
+if (translateBtn) {
+  translateBtn.addEventListener("click", () => {
+    runTranslation();
+  });
+}
+
+updatePreviewDisplay();
+setTranslatorStatus("");
 
 renderHighlightList();
 updateHighlightButtons();
@@ -344,6 +393,37 @@ function buildLanguageCorrectionPayload(prompt, srtText) {
     ],
     generationConfig: {
       temperature: 0.1,
+      topP: 0.9,
+      topK: 32,
+      maxOutputTokens: 8192
+    }
+  };
+}
+
+function buildTranslationPayload(targetLanguage, srtText) {
+  const prompt = `
+You are an expert subtitle translator.
+Translate the following SubRip (.srt) captions into ${targetLanguage}.
+- Preserve every numerical index and timestamp exactly as provided.
+- Translate only the caption text content.
+- Maintain line breaks and formatting inside each caption block.
+- Return only the translated .srt content with no additional commentary.
+`.trim();
+
+  return {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: prompt },
+          {
+            text: "Here is the .srt file:\n" + srtText
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.2,
       topP: 0.9,
       topK: 32,
       maxOutputTokens: 8192
@@ -719,22 +799,16 @@ function buildHighlightEditor(caption) {
   const wrapper = document.createElement("div");
   wrapper.className = "highlight-item-editor";
 
-  const topControls = document.createElement("div");
-  topControls.className = "highlight-top-controls";
-
-  const playButton = createPlayButton(() => playCaptionSegment(highlightSelectionIndex), "highlight");
-
   const resetButton = document.createElement("button");
   resetButton.type = "button";
-  resetButton.className = "highlight-top-btn highlight-reset-btn";
+  resetButton.className = "highlight-reset-btn";
   resetButton.textContent = "Reset";
   resetButton.disabled = isProcessing;
   resetButton.addEventListener("click", event => {
     event.stopPropagation();
     resetHighlightEdits();
   });
-
-  topControls.append(playButton, resetButton);
+  wrapper.appendChild(resetButton);
 
   const textArea = document.createElement("textarea");
   textArea.className = "highlight-editor-text";
@@ -752,9 +826,10 @@ function buildHighlightEditor(caption) {
 
   const controlsRow = document.createElement("div");
   controlsRow.className = "combined-time-controls";
-  controlsRow.append(startControls.container, endControls.container);
+  const playButton = createPlayButton(() => playCaptionSegment(highlightSelectionIndex), "highlight");
+  controlsRow.append(startControls.container, endControls.container, playButton);
 
-  wrapper.append(topControls, textArea, controlsRow);
+  wrapper.append(textArea, controlsRow);
 
   autoResizeHighlightTextarea(textArea);
 
@@ -871,6 +946,74 @@ function autoResizeHighlightTextarea(textArea) {
   textArea.style.height = `${Math.max(48, textArea.scrollHeight)}px`;
 }
 
+function updatePreviewIndex(index, options = {}) {
+  if (!previewText) {
+    return;
+  }
+
+  if (!captions.length) {
+    previewIndex = -1;
+    updatePreviewDisplay();
+    return;
+  }
+
+  let target = Number.isFinite(index) ? index : previewIndex;
+  if (!Number.isFinite(target) || target < 0 || target >= captions.length) {
+    if (selectedCaptionIndex >= 0) {
+      target = selectedCaptionIndex;
+    } else {
+      target = 0;
+    }
+  }
+
+  const clamped = Math.max(0, Math.min(target, captions.length - 1));
+  previewIndex = clamped;
+  updatePreviewDisplay();
+
+  if (!options.fromSelection && !options.skipSelectionSync) {
+    setSelectedCaption(clamped, { seek: options.seek ?? false });
+  }
+}
+
+function updatePreviewDisplay() {
+  if (!previewText || !previewPrevBtn || !previewNextBtn) {
+    return;
+  }
+
+  if (!captions.length || previewIndex < 0 || previewIndex >= captions.length) {
+    previewText.textContent = "No captions loaded yet.";
+    if (previewCounter) {
+      previewCounter.textContent = "-- / --";
+    }
+    previewPrevBtn.disabled = true;
+    previewNextBtn.disabled = true;
+    if (previewPlayBtn) {
+      previewPlayBtn.disabled = true;
+    }
+    return;
+  }
+
+  const caption = captions[previewIndex];
+  previewText.textContent = caption.text || `Caption ${previewIndex + 1}`;
+  if (previewCounter) {
+    previewCounter.textContent = `#${previewIndex + 1} / ${captions.length}`;
+  }
+
+  previewPrevBtn.disabled = isProcessing || previewIndex <= 0;
+  previewNextBtn.disabled = isProcessing || previewIndex >= captions.length - 1;
+  if (previewPlayBtn) {
+    previewPlayBtn.disabled = isProcessing || !audioPlayer.src;
+  }
+}
+
+function setTranslatorStatus(message, tone = "info") {
+  if (!translatorStatus) {
+    return;
+  }
+  translatorStatus.textContent = message;
+  translatorStatus.dataset.tone = tone;
+}
+
 function syncCaptionEdits(options = {}) {
   if (!captions.length) {
     return;
@@ -886,6 +1029,7 @@ function syncCaptionEdits(options = {}) {
   updateCaptionHighlight(currentPlayingIndex, { force: true, scroll: false });
   populateInspector(selectedCaptionIndex);
   updateHighlightButtons();
+  updatePreviewIndex(previewIndex, { fromSelection: true, skipSelectionSync: true });
 
   if (options.statusMessage) {
     setStatus(options.statusMessage, options.statusTone || "info");
@@ -903,6 +1047,7 @@ function updateHighlightInputsFromCaption() {
   if (highlightActiveControls.endInput) {
     highlightActiveControls.endInput.value = msToTime(caption.end);
   }
+  updatePreviewDisplay();
 }
 
 function commitHighlightTextChange(value) {
@@ -916,6 +1061,9 @@ function commitHighlightTextChange(value) {
   }
   caption.text = normalized;
   syncCaptionEdits();
+  if (!highlightActiveControls?.textArea) {
+    updatePreviewDisplay();
+  }
 }
 
 function commitHighlightTimingChange(options = {}) {
@@ -961,6 +1109,7 @@ function commitHighlightTimingChange(options = {}) {
   }
 
   updateHighlightInputsFromCaption();
+  updatePreviewDisplay();
 }
 
 function refreshHighlightControlsState() {
@@ -1084,6 +1233,46 @@ function nudgeHighlightTiming(field, delta) {
 
   updateHighlightInputsFromCaption();
   syncCaptionEdits();
+}
+
+async function runTranslation() {
+  if (!translateBtn) {
+    return;
+  }
+
+  const language = translatorLanguageInput?.value.trim();
+  if (!language) {
+    setTranslatorStatus("Please enter a target language.", "error");
+    return;
+  }
+
+  const baseSrt = getActiveSrt();
+  if (!baseSrt) {
+    setTranslatorStatus("No captions available to translate yet.", "error");
+    return;
+  }
+
+  setTranslatorStatus(`Translating to ${language}...`, "info");
+  translateBtn.disabled = true;
+  toggleWorking(true);
+
+  try {
+    const payload = buildTranslationPayload(language, baseSrt);
+    const translatedSrt = await callGeminiWithRotation(payload);
+    if (!translatedSrt) {
+      throw new Error("Gemini did not return translated subtitles.");
+    }
+    if (translationOutput) {
+      translationOutput.value = translatedSrt.trim();
+    }
+    setTranslatorStatus(`Translation ready (${language}).`, "success");
+  } catch (error) {
+    console.error(error);
+    setTranslatorStatus(error.message || "Translation failed.", "error");
+  } finally {
+    toggleWorking(false);
+    translateBtn.disabled = false;
+  }
 }
 
 function updateInspectorControls(enabled) {
