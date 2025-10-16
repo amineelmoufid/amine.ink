@@ -242,20 +242,86 @@ label {
   box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
 }
 
-.highlight-item-editor {
-  position: relative;
+.caption-row-header {
   display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding-top: 0.6rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.highlight-reset-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  padding: 0.2rem 0.45rem;
-  font-size: 0.65rem;
+.caption-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.caption-meta span:first-child {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.caption-meta span:last-child {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.caption-play-btn,
+.highlight-play-btn {
+  border: none;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.caption-play-btn {
+  padding: 0.45rem 0.9rem;
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+.highlight-play-btn {
+  padding: 0.35rem 0.75rem;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.8rem;
+}
+
+.caption-play-btn:disabled,
+.highlight-play-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.caption-play-btn:not(:disabled):hover,
+.highlight-play-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.2);
+}
+
+.highlight-item-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.highlight-top-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.highlight-top-controls .highlight-play-btn {
+  padding: 0.35rem 0.75rem;
+}
+
+.highlight-top-btn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
   border-radius: 999px;
   border: 1px solid #cbd5fe;
   background: #e0e7ff;
@@ -265,15 +331,27 @@ label {
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.highlight-reset-btn:disabled {
+.highlight-top-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
-.highlight-reset-btn:not(:disabled):hover {
+.highlight-top-btn:not(:disabled):hover {
   background: #cbd5fe;
   transform: translateY(-1px);
+}
+
+.highlight-static-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.highlight-static-row .highlight-text-static {
+  flex: 1;
 }
 
 .highlight-item textarea {
@@ -662,6 +740,38 @@ textarea:focus {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
+  }
+
+  .caption-row-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .caption-play-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .highlight-top-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .highlight-top-controls .highlight-top-btn,
+  .highlight-top-controls .highlight-play-btn {
+    width: 100%;
+  }
+
+  .highlight-static-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .highlight-static-row .highlight-play-btn {
+    width: 100%;
   }
 
   .highlight-item .inline-time-controls .time-buttons {

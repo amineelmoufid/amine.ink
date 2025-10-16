@@ -210,6 +210,7 @@ audioPlayer.addEventListener("ended", () => {
 });
 audioPlayer.addEventListener("loadedmetadata", () => {
   updateInspectorControls(selectedCaptionIndex >= 0 && Boolean(captions[selectedCaptionIndex]));
+  updatePlayButtonsState();
 });
 
 playCaptionBtn.addEventListener("click", () => {
@@ -368,6 +369,7 @@ function setAudioSource(file) {
   }
   audioPlayer.load();
   updateInspectorControls(selectedCaptionIndex >= 0 && Boolean(captions[selectedCaptionIndex]));
+  updatePlayButtonsState();
 }
 
 function resetVisualEditor() {
@@ -382,6 +384,7 @@ function resetVisualEditor() {
   highlightSelectionIndex = -1;
   renderHighlightList();
   updateHighlightButtons();
+  updatePlayButtonsState();
 }
 
 function loadCaptionsIntoEditor(srtText) {
@@ -436,12 +439,20 @@ function renderCaptionList() {
     }
 
     const header = document.createElement("header");
+    header.className = "caption-row-header";
+
+    const meta = document.createElement("div");
+    meta.className = "caption-meta";
     const indexLabel = document.createElement("span");
     indexLabel.textContent = `#${index + 1}`;
     const timeLabel = document.createElement("span");
     timeLabel.textContent = `${msToTime(caption.start)} -> ${msToTime(caption.end)}`;
-    header.appendChild(indexLabel);
-    header.appendChild(timeLabel);
+    meta.appendChild(indexLabel);
+    meta.appendChild(timeLabel);
+
+    const playBtn = createPlayButton(() => playCaptionSegment(index), "caption");
+    header.appendChild(meta);
+    header.appendChild(playBtn);
 
     const textPara = document.createElement("p");
     textPara.textContent = caption.text;
@@ -456,6 +467,7 @@ function renderCaptionList() {
   });
 
   captionListEl.scrollTop = previousScroll;
+  updatePlayButtonsState();
 }
 
 function setSelectedCaption(index, options = {}) {
@@ -683,10 +695,14 @@ function renderHighlightList() {
     if (index === highlightSelectionIndex) {
       item.appendChild(buildHighlightEditor(caption));
     } else {
+      const staticRow = document.createElement("div");
+      staticRow.className = "highlight-static-row";
       const textDisplay = document.createElement("div");
       textDisplay.className = "highlight-text-static";
       textDisplay.textContent = caption.text || `Caption ${index + 1}`;
-      item.appendChild(textDisplay);
+      const playBtn = createPlayButton(() => playCaptionSegment(index), "highlight");
+      staticRow.append(textDisplay, playBtn);
+      item.appendChild(staticRow);
     }
 
     item.addEventListener("click", () => selectHighlightItem(index));
@@ -696,21 +712,29 @@ function renderHighlightList() {
   highlightListEl.innerHTML = "";
   highlightListEl.appendChild(fragment);
   refreshHighlightControlsState();
+  updatePlayButtonsState();
 }
 
 function buildHighlightEditor(caption) {
   const wrapper = document.createElement("div");
   wrapper.className = "highlight-item-editor";
 
+  const topControls = document.createElement("div");
+  topControls.className = "highlight-top-controls";
+
+  const playButton = createPlayButton(() => playCaptionSegment(highlightSelectionIndex), "highlight");
+
   const resetButton = document.createElement("button");
   resetButton.type = "button";
-  resetButton.className = "highlight-reset-btn";
+  resetButton.className = "highlight-top-btn highlight-reset-btn";
   resetButton.textContent = "Reset";
   resetButton.disabled = isProcessing;
   resetButton.addEventListener("click", event => {
     event.stopPropagation();
     resetHighlightEdits();
   });
+
+  topControls.append(playButton, resetButton);
 
   const textArea = document.createElement("textarea");
   textArea.className = "highlight-editor-text";
@@ -730,7 +754,7 @@ function buildHighlightEditor(caption) {
   controlsRow.className = "combined-time-controls";
   controlsRow.append(startControls.container, endControls.container);
 
-  wrapper.append(resetButton, textArea, controlsRow);
+  wrapper.append(topControls, textArea, controlsRow);
 
   autoResizeHighlightTextarea(textArea);
 
@@ -743,6 +767,7 @@ function buildHighlightEditor(caption) {
     endMinus: endControls.minus,
     endPlus: endControls.plus,
     resetButton,
+    playButton,
     original: {
       start: caption.start,
       end: caption.end,
@@ -751,6 +776,44 @@ function buildHighlightEditor(caption) {
   };
 
   return wrapper;
+}
+
+function createPlayButton(onClick, variant = "caption") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className =
+    variant === "highlight" ? "highlight-play-btn" : "caption-play-btn";
+  button.textContent = "Play";
+  button.disabled = isProcessing || !audioPlayer.src || (variant === "highlight" && currentPreviewMode !== "highlight");
+  button.addEventListener("click", event => {
+    event.stopPropagation();
+    if (button.disabled) {
+      return;
+    }
+    onClick();
+  });
+  return button;
+}
+
+function updatePlayButtonsState() {
+  const disabledForCaption = isProcessing || !audioPlayer.src;
+  const disabledForHighlight = isProcessing || !audioPlayer.src || currentPreviewMode !== "highlight";
+
+  const captionButtons = captionListEl.querySelectorAll(".caption-play-btn");
+  captionButtons.forEach(button => {
+    button.disabled = disabledForCaption;
+  });
+
+  if (highlightListEl) {
+    const highlightButtons = highlightListEl.querySelectorAll(".highlight-play-btn");
+    highlightButtons.forEach(button => {
+      button.disabled = disabledForHighlight;
+    });
+  }
+
+  if (highlightActiveControls?.playButton) {
+    highlightActiveControls.playButton.disabled = disabledForHighlight;
+  }
 }
 
 function createHighlightTimeControls(field, valueMs) {
@@ -914,7 +977,8 @@ function refreshHighlightControlsState() {
     controls.startPlus,
     controls.endMinus,
     controls.endPlus,
-    controls.resetButton
+    controls.resetButton,
+    controls.playButton
   ].forEach(ctrl => {
     if (ctrl) {
       ctrl.disabled = disabled;
@@ -937,6 +1001,7 @@ function updateHighlightButtons() {
   markUncertainBtn.disabled = isProcessing || currentPreviewMode !== "highlight" || !hasSelection;
   clearPlayBtn.disabled = isProcessing || currentPreviewMode !== "highlight" || !hasSelection || !audioPlayer.src;
   refreshHighlightControlsState();
+  updatePlayButtonsState();
 }
 
 function markSelectedHighlight() {
@@ -1203,6 +1268,7 @@ function toggleWorking(isWorking) {
   updateShiftButtons();
   updateLanguageFixButton();
   updateInspectorControls(!isWorking && selectedCaptionIndex >= 0 && Boolean(captions[selectedCaptionIndex]));
+  updatePlayButtonsState();
 }
 
 function setStatus(message, tone = "info") {
