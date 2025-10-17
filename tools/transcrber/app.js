@@ -4,7 +4,7 @@ const GEMINI_KEYS = [
   "AIzaSyD4c913NvzKh6POitWSdSVCpXXNR3hkmYcSRT"
 ];
 
-const modelEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
+const modelEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
 const fallbackPromptTemplates = (() => {
   const wordGuidance = {
@@ -1607,6 +1607,7 @@ function msToTime(value) {
 
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")},${String(milliseconds).padStart(3, "0")}`;
 }
+
 
 
 
