@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeonForge · Gemini NanoBanana Image Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #05060f;
+      --bg-glow: radial-gradient(circle at top left, rgba(0, 255, 196, 0.15), transparent 45%),
+        radial-gradient(circle at bottom right, rgba(147, 51, 234, 0.2), transparent 55%);
+      --card: rgba(12, 15, 35, 0.7);
+      --accent: #55ffe1;
+      --accent-strong: #7c3aed;
+      --text-primary: #f8fafc;
+      --text-secondary: #8a9abf;
+      --border: rgba(85, 255, 225, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      background-image: var(--bg-glow);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+    }
+
+    .shell {
+      width: min(1100px, 100%);
+      background: linear-gradient(135deg, rgba(18, 24, 56, 0.85), rgba(8, 12, 30, 0.92));
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      border-radius: 24px;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(18px);
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(85, 255, 225, 0.4), rgba(124, 58, 237, 0.6));
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .grid {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge {
+      width: fit-content;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid rgba(85, 255, 225, 0.35);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.7rem;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 4vw, 3.5rem);
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    p.lead {
+      margin: 0;
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 60ch;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      padding: 1.75rem;
+      background: rgba(7, 12, 30, 0.75);
+      border-radius: 20px;
+      border: 1px solid rgba(85, 255, 225, 0.2);
+      box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.15);
+    }
+
+    label {
+      font-size: 0.95rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    input[type="text"] {
+      border: 1px solid rgba(85, 255, 225, 0.4);
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      background: rgba(5, 8, 18, 0.85);
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: border 200ms ease, box-shadow 200ms ease;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(85, 255, 225, 0.25);
+    }
+
+    .prompt-preview {
+      font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+      background: rgba(2, 6, 20, 0.8);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      border-radius: 16px;
+      padding: 1.25rem;
+      font-size: 0.9rem;
+      color: rgba(217, 230, 255, 0.8);
+      line-height: 1.6;
+      max-height: 260px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 0.9rem 1.8rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease;
+    }
+
+    button.generate {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #020817;
+      box-shadow: 0 15px 35px rgba(85, 255, 225, 0.3);
+    }
+
+    button.generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(124, 58, 237, 0.4);
+    }
+
+    button.secondary {
+      background: rgba(7, 12, 30, 0.7);
+      color: var(--text-secondary);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+    }
+
+    button.secondary:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .output-panel {
+      position: relative;
+      background: rgba(5, 8, 18, 0.9);
+      border-radius: 20px;
+      padding: 1.5rem;
+      border: 1px solid rgba(124, 58, 237, 0.35);
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      box-shadow: inset 0 0 25px rgba(85, 255, 225, 0.08);
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .output-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .img-stage {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      background: repeating-conic-gradient(from 45deg, rgba(85, 255, 225, 0.04) 0deg 15deg, transparent 15deg 30deg);
+      border-radius: 16px;
+      border: 1px dashed rgba(85, 255, 225, 0.3);
+      padding: 1rem;
+      position: relative;
+    }
+
+    .img-stage img {
+      max-width: 100%;
+      border-radius: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .placeholder {
+      text-align: center;
+      color: rgba(148, 163, 184, 0.7);
+      font-size: 0.95rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .progress {
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      overflow: hidden;
+    }
+
+    .progress::after {
+      content: "";
+      display: block;
+      width: var(--progress, 0%);
+      height: 100%;
+      background: linear-gradient(90deg, rgba(85, 255, 225, 0.8), rgba(124, 58, 237, 0.8));
+      transition: width 120ms ease;
+    }
+
+    .status-line {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.85rem;
+      color: rgba(148, 163, 184, 0.9);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .status-dot {
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(85, 255, 225, 0.7);
+    }
+
+    .error {
+      color: #f87171;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      .shell {
+        padding: 2rem;
+      }
+
+      form {
+        padding: 1.4rem;
+      }
+
+      .output-panel {
+        padding: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <span class="badge">Gemini nano·banana</span>
+      <h1>Generate Cohesive Neon Dreams</h1>
+      <p class="lead">
+        Feed a single <strong>subject</strong>, and Gemini nano·banana will craft a cohesive cyber-startup hero visual using your
+        locked prompt DNA. Edit the subject, press generate, and download the result instantly.
+      </p>
+    </header>
+
+    <div class="grid">
+      <form id="prompt-form">
+        <div class="input-group">
+          <label for="subject">Subject</label>
+          <input id="subject" name="subject" type="text" placeholder="e.g. Quantum fintech dashboard" required />
+        </div>
+
+        <div class="prompt-preview" id="prompt-preview" aria-live="polite"></div>
+
+        <div class="actions">
+          <button class="generate" type="submit">Generate visual</button>
+          <button class="secondary" type="button" id="download-btn" disabled>Download PNG</button>
+        </div>
+      </form>
+
+      <section class="output-panel">
+        <div class="output-header">
+          <h2>Render stream</h2>
+          <div class="status-line" id="status-line">
+            <span class="status-dot"></span>
+            <span id="status-text">Idle · awaiting prompt</span>
+          </div>
+        </div>
+
+        <div class="img-stage" id="img-stage">
+          <div class="placeholder" id="placeholder">
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="rgba(148, 163, 184, 0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="M3 14.5 8.5 10l3 2.5L21 7"></path>
+            </svg>
+            <span>Generated art will render here.</span>
+          </div>
+        </div>
+
+        <div class="progress" id="progress"></div>
+      </section>
+    </div>
+
+    <footer>
+      Crafted with Gemini API · model: <code>models/nano-banana</code>
+    </footer>
+  </div>
+
+  <script>
+    const API_KEY = "AIzaSyAcJ2ZHlmjzuNwbkah8uy9dPvOm-DCGUeI";
+    const MODEL_ID = "models/nano-banana";
+
+    const promptBlueprint = {
+      aesthetics: "Hyper-modern neon cyber visuals with soft volumetric lighting and clean gradients",
+      composition: "Wide hero scene framed with futuristic glass morphism panels and holographic HUD overlays",
+      palette: "Electric cyan, ultraviolet, magenta glows with deep midnight blues",
+      vibe: "Hopeful, premium startup energy with subtle motion blur trails",
+      subject: "",
+      output: {
+        aspect_ratio: "16:9",
+        medium: "ultra-detailed digital illustration",
+        details: [
+          "soft bloom lighting",
+          "glassy UI shards",
+          "nano circuitry textures"
+        ]
+      }
+    };
+
+    const form = document.getElementById("prompt-form");
+    const subjectInput = document.getElementById("subject");
+    const promptPreview = document.getElementById("prompt-preview");
+    const statusText = document.getElementById("status-text");
+    const statusLine = document.getElementById("status-line");
+    const progress = document.getElementById("progress");
+    const imgStage = document.getElementById("img-stage");
+    const placeholder = document.getElementById("placeholder");
+    const downloadBtn = document.getElementById("download-btn");
+
+    let currentImageDataUrl = null;
+
+    const renderPromptPreview = (subjectValue) => {
+      const previewObject = { ...promptBlueprint, subject: subjectValue.trim() };
+      promptPreview.textContent = JSON.stringify(previewObject, null, 2);
+    };
+
+    subjectInput.addEventListener("input", (event) => {
+      renderPromptPreview(event.target.value || "");
+    });
+
+    renderPromptPreview(subjectInput.value);
+
+    const setStatus = (text, isError = false) => {
+      statusText.textContent = text;
+      statusLine.classList.toggle("error", isError);
+      statusText.classList.toggle("error", isError);
+    };
+
+    const setProgress = (value) => {
+      progress.style.setProperty("--progress", `${value}%`);
+    };
+
+    const resetOutput = () => {
+      setProgress(0);
+      setStatus("Idle · awaiting prompt");
+      imgStage.innerHTML = "";
+      imgStage.appendChild(placeholder);
+      downloadBtn.disabled = true;
+      currentImageDataUrl = null;
+    };
+
+    const createImageElement = (dataUrl) => {
+      const img = document.createElement("img");
+      img.src = dataUrl;
+      img.alt = "Generated artwork";
+      img.loading = "lazy";
+      return img;
+    };
+
+    const buildRequestPayload = (subject) => {
+      const composedPrompt = { ...promptBlueprint, subject };
+      return {
+        prompt: {
+          text: JSON.stringify(composedPrompt)
+        }
+      };
+    };
+
+    const callGemini = async (subject) => {
+      const payload = buildRequestPayload(subject);
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${MODEL_ID}:generateImage?key=${API_KEY}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini error ${response.status}: ${errorText}`);
+      }
+
+      return response.json();
+    };
+
+    const extractImageData = (apiResponse) => {
+      const generated = apiResponse?.generatedImages?.[0];
+      if (!generated?.bytesBase64Encoded) {
+        throw new Error("No image bytes returned from Gemini.");
+      }
+      const mimeType = generated.mimeType || "image/png";
+      return {
+        dataUrl: `data:${mimeType};base64,${generated.bytesBase64Encoded}`,
+        prompt: generated?.prompt || null
+      };
+    };
+
+    downloadBtn.addEventListener("click", () => {
+      if (!currentImageDataUrl) return;
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.download = `gemini-nanobanana-${timestamp}.png`;
+      link.href = currentImageDataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const subject = subjectInput.value.trim();
+      if (!subject) {
+        setStatus("Subject is required", true);
+        return;
+      }
+
+      setStatus("Calling Gemini · forging pixels");
+      setProgress(12);
+      downloadBtn.disabled = true;
+      placeholder.remove();
+      imgStage.innerHTML = "";
+
+      try {
+        const response = await callGemini(subject);
+        setProgress(58);
+        const { dataUrl } = extractImageData(response);
+        setProgress(92);
+        const img = createImageElement(dataUrl);
+        imgStage.appendChild(img);
+        currentImageDataUrl = dataUrl;
+        downloadBtn.disabled = false;
+        setProgress(100);
+        setStatus("Complete · asset ready");
+      } catch (error) {
+        console.error(error);
+        imgStage.innerHTML = "";
+        imgStage.appendChild(placeholder);
+        setProgress(0);
+        setStatus(error.message || "Generation failed", true);
+        downloadBtn.disabled = true;
+        currentImageDataUrl = null;
+      }
+    });
+  </script>
+</body>
+</html>
