@@ -300,9 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const folderId = parseInt(parentFolder.dataset.id, 10);
                     if (folderId !== 23) {
                         // Shift button left to avoid overlapping folder controls
-                        audioControlBtn.style.right = '20px';
-                        audioControlBtn.style.top = '24px';
-
+                        audioControlBtn.style.right = '148px';
                     }
                 }
 
