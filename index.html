@@ -31,11 +31,11 @@
         <div class="cabinet-base"></div>
     </div>
     
-    <audio id="about-me-audio" src="assets/audio/about_me.mp3" preload="auto" hidden></audio>
-    <audio id="experiences-audio" src="assets/audio/experiences.mp3" preload="auto" hidden></audio>
-    <audio id="personality-audio" src="assets/audio/personality.mp3" preload="auto" hidden></audio>
-    <audio id="skills-audio" src="assets/audio/skills.mp3" preload="auto" hidden></audio>
-    <audio id="what-ive-done-audio" src="assets/audio/What I’ve Done/what-i-ve-done-as-a-co-zqn3xjfs-2025-09-03-.mp3" preload="metadata"></audio>
+    <audio id="about-me-audio" src="assets/audio/about_me.mp3" preload="none" hidden></audio>
+    <audio id="experiences-audio" src="assets/audio/experiences.mp3" preload="none" hidden></audio>
+    <audio id="personality-audio" src="assets/audio/personality.mp3" preload="none" hidden></audio>
+    <audio id="skills-audio" src="assets/audio/skills.mp3" preload="none" hidden></audio>
+    <audio id="what-ive-done-audio" src="assets/audio/What I’ve Done/what-i-ve-done-as-a-co-zqn3xjfs-2025-09-03-.mp3" preload="none"></audio>
 
     <script src="content.js"></script>
     <script src="assets/data/about_me.js"></script>
@@ -60,9 +60,13 @@
                 <button class="folder-control-button" title="Instagram" data-action="link" data-value="https://instagram.com/amine_elmoufid"><img src='https://img.icons8.com/?size=100&id=ZOFC5nSr215Y&format=png&color=FFFFFF' style='height: 20px'></button>
                 <button class="folder-control-button" title="Email" data-action="copy" data-value="amine.elmoufid.personal@gmail.com" data-link="mailto:amine.elmoufid.personal@gmail.com"><img src='https://img.icons8.com/?size=100&id=63489&format=png&color=FFFFFF' style='height: 20px'></button>
                 <button class="folder-control-button" title="Phone / WhatsApp" data-action="copy" data-value="+212675223453" data-link="https://wa.me/212675223453"><img src='https://img.icons8.com/?size=100&id=fAnexogbxI5v&format=png&color=FFFFFF' style='height: 20px'></button>
-                <button class="folder-control-button" id="download-button" title="Download Resume" data-action="download" data-value="assets/Resume amine elmoufid.pdf" data-link="https://amine.ink/assets/Resume%20amine%20elmoufid.pdf"><img src='https://img.icons8.com/?size=100&id=vk3CfSUT5UA6&format=png&color=FFFFFF' style='height: 20px'></button>
+                <button class="folder-control-button" id="download-button" title="Download Resume" data-action="download" data-value="assets/Resume amine elmoufid.pdf" data-link="assets/Resume%20amine%20elmoufid.pdf"><img src='https://img.icons8.com/?size=100&id=vk3CfSUT5UA6&format=png&color=FFFFFF' style='height: 20px'></button>
             </div>  
-            <iframe id="pdf-modal-iframe" src="assets/Resume amine elmoufid.pdf" width="100%" height="100%" frameborder="0"></iframe>
+            <div class="pdf-mobile-fallback" style="display: none; padding: 20px; text-align: center; color: white;">
+                <p style="margin-bottom: 15px; font-size: 18px;">PDF preview may not be supported directly in your mobile browser.</p>
+                <a href="assets/Resume%20amine%20elmoufid.pdf" target="_blank" download class="folder-control-button" style="display: inline-flex; width: auto; padding: 10px 20px; font-size: 18px; color: white; border-color: white;">Download / Open PDF</a>
+            </div>
+            <iframe id="pdf-modal-iframe" src="" data-src="assets/Resume amine elmoufid.pdf" width="100%" height="100%" frameborder="0"></iframe>
         </div>
     </div>
 

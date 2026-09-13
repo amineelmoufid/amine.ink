@@ -151,9 +151,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const folderIndex = allFolders.indexOf(folder);
                 const contentArea = folder.querySelector('.folder-content-area');
                 
-                const folderTop = folder.getBoundingClientRect().top;
-                const desiredTop = window.innerHeight / 2 - 200; 
-                const cabinetMoveDistance = desiredTop - folderTop;
+                const isMobile = window.innerWidth <= 768;
+                const desiredTop = isMobile ? 15 : (window.innerHeight * 0.1) + 18; 
+                
+                // When a folder expands, .file-stack height adapts to viewport
+                const stackHeight = isMobile ? Math.min(650, window.innerHeight * 0.85) : 800;
+                const finalCabinetHeight = stackHeight + 34;
+                const finalCabinetTop = (window.innerHeight - finalCabinetHeight) / 2;
+                
+                const stepHeight = isMobile ? 18 : 20;
+                const folderOffset = 32 + (folderIndex * stepHeight);
+                
+                const cabinetMoveDistance = desiredTop - (finalCabinetTop + folderOffset);
                 cabinet.style.transform = `translateY(${cabinetMoveDistance}px)`;
 
                 const fileData = portfolioData.find(item => item.id == folderId);
@@ -1050,14 +1059,21 @@ document.addEventListener('mousemove', (event) => {
     const collageContainer = document.getElementById('background-collage');
     const allCollageImages = []; // An array to hold the created image elements
 
-    // STEP 1: Immediately create all 83 images and add them to the page.
-    // They will be invisible due to the CSS, but this allows the browser to start downloading them.
-    for (let i = 1; i <= 83; i++) {
-        const img = document.createElement('img');
-        img.src = `assets/imgs/(${i})-min.jpg`;
-        img.className = 'collage-image clickable-image';
+    // Detect mobile viewport to prevent DOM and GPU thrashing
+    const isMobileCollage = window.innerWidth <= 768;
+    const maxCollageImages = isMobileCollage ? 18 : 45;
 
-        // Apply your random positioning and rotation
+    // STEP 1: Create an optimized subset of images with async decoding and lazy loading
+    for (let i = 1; i <= maxCollageImages; i++) {
+        // Distribute nicely across the 83 available images
+        const imgIndex = isMobileCollage ? Math.min(83, Math.floor((i * 83) / maxCollageImages)) : i;
+        const img = document.createElement('img');
+        img.src = `assets/imgs/(${imgIndex})-min.jpg`;
+        img.className = 'collage-image clickable-image';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+
+        // Apply random positioning and rotation
         const randomTop = Math.random() * 90;
         const randomLeft = Math.random() * 90;
         const randomRotate = (Math.random() * 30) - 15;
@@ -1065,32 +1081,24 @@ document.addEventListener('mousemove', (event) => {
         img.style.left = `${randomLeft}vw`;
         img.style.transform = `rotate(${randomRotate}deg)`;
 
-        // Store the image element and add it to the DOM
         allCollageImages.push(img);
         collageContainer.appendChild(img);
     }
 
-    // STEP 2: After the initial 1-second delay, start the sequential reveal process.
+    // STEP 2: After the initial delay, start sequential reveal
     setTimeout(() => {
-        let revealIndex = 0; // A counter for which image to reveal next
+        let revealIndex = 0;
+        const revealInterval = isMobileCollage ? 150 : 100;
         
-        // This function reveals one image and then schedules the next one
         function revealNextImage() {
-            // Check if there are still images left to reveal
             if (revealIndex < allCollageImages.length) {
-                // Add the .is-visible class to the current image to trigger its fade-in
                 allCollageImages[revealIndex].classList.add('is-visible');
                 revealIndex++;
-                
-                // Set a short delay (e.g., 100ms) before revealing the next image
-                setTimeout(revealNextImage, 100); 
+                setTimeout(revealNextImage, revealInterval); 
             }
         }
-
-        // Kick off the very first reveal, starting the cascade
         revealNextImage();
-
-    }, 1000); // The 1-second (10,000 milliseconds) initial delay
+    }, 800);
 
     // --- END OF FINAL COLLAGE LOGIC ---
 
@@ -1104,11 +1112,28 @@ document.addEventListener('mousemove', (event) => {
     function openPdfModal() {
         pdfModal.style.display = 'flex';
         currentPdfZoom = 1.0; // Reset zoom every time
-        pdfIframe.style.transform = 'scale(1)';
-        pdfIframe.style.transformOrigin = 'top left';
+        if (pdfIframe) {
+            const pdfSrc = pdfIframe.getAttribute('data-src') || 'assets/Resume amine elmoufid.pdf';
+            if (!pdfIframe.src || pdfIframe.src === '' || pdfIframe.src === 'about:blank' || !pdfIframe.src.includes('Resume')) {
+                pdfIframe.src = pdfSrc;
+            }
+            pdfIframe.style.transform = 'scale(1)';
+            pdfIframe.style.transformOrigin = 'top left';
+        }
+        const fallback = pdfModal.querySelector('.pdf-mobile-fallback');
+        if (fallback) {
+            fallback.style.display = window.innerWidth <= 600 ? 'block' : 'none';
+        }
     }
 
-    // Event listener to OPEN the modal (using delegation on the whole file stack)
+    function closePdfModal() {
+        pdfModal.style.display = 'none';
+        if (pdfIframe) {
+            pdfIframe.src = ''; // Unload to free RAM on mobile
+        }
+    }
+
+    // Event listener to OPEN the modal
     fileStack.addEventListener('click', (event) => {
         if (event.target.matches('.pdf-preview-overlay')) {
             openPdfModal();
@@ -1116,23 +1141,12 @@ document.addEventListener('mousemove', (event) => {
     });
 
     // Event listener to CLOSE the modal
-    pdfModalClose.addEventListener('click', () => {
-        pdfModal.style.display = 'none';
-    });
+    pdfModalClose.addEventListener('click', closePdfModal);
 
-
-    // Add this listener for the PDF modal background click
+    // Close on backdrop click
     pdfModal.addEventListener('click', (event) => {
-        // This is the crucial check: only close the modal if the click
-        // was directly on the semi-transparent background itself.
         if (event.target === pdfModal) {
-            
-            // Hide the modal
-            pdfModal.style.display = 'none';
-
-            // --- CRITICAL FIX ---
-            // This stops the click from bubbling up and being "heard"
-            // by the listener that closes the main folder.
+            closePdfModal();
             event.stopPropagation();
         }
     });
